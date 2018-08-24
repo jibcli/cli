@@ -1,0 +1,24 @@
+{
+  "name": "@jib/cli",
+  "version": "0.0.1",
+  "description": "All inclusive CLI development framework",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "npm run build -- -w",
+    "prebuild": "rm -rf build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Matt Vander Vliet <matt@mtnvanman.com>",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^2.4.1",
+    "commander": "^2.17.1"
+  },
+  "devDependencies": {
+    "@types/node": "^10.9.1",
+    "ts-node": "^7.0.1",
+    "typescript": "^3.0.1"
+  }
+}
