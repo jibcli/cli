@@ -8,7 +8,7 @@
     "build": "tsc",
     "build:watch": "npm run build -- -w",
     "prebuild": "rm -rf build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "nyc jasmine --config=src/spec/support/jasmine.json"
   },
   "author": "Matt Vander Vliet <matt@mtnvanman.com>",
   "license": "MIT",
@@ -17,7 +17,11 @@
     "commander": "^2.17.1"
   },
   "devDependencies": {
+    "@types/jasmine": "^2.8.8",
     "@types/node": "^10.9.1",
+    "jasmine": "^3.2.0",
+    "jasmine-spec-reporter": "^4.2.1",
+    "nyc": "^12.0.2",
     "ts-node": "^7.0.1",
     "typescript": "^3.0.1"
   }
