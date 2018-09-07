@@ -42,3 +42,15 @@ best to use a `.js` file as the bin, rather than a file emitted by TypeScript.
 ```typescript
 // TODO
 ```
+
+## TODOs
+
+- [ ] Add support for single named command
+- [ ] Add support for `stdin`
+- [ ] Add support for custom text additions on `-v|--version` (foo, copyright, etc.)
+- [ ] Add support for plugins
+  - [ ] UI spinner `@jib/cli-spinner`
+  - [ ] UI table `@jib/cli-table`
+  - [ ] UI image `@jib/cli-image`
+  - [ ] UI video `@jib/cli-video`
+  - [ ] Yeoman generator framework `@jib/yeoman`
