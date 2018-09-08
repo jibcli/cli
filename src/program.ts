@@ -1,7 +1,6 @@
-import * as CLI from 'commander';
 import { ICommandCtor, CommandImplementation, ICommandDefinition } from './command';
 import { getPackageJson, CONSTANTS, UIWriter, Logger } from './lib';
-import { addCommandOptions, IProgramCommand, ICommandOption, addOptionCallback, IProgramOptionCallback } from './adapter';
+import { CommandAdapter, ICommandOption, IProgramOptionCallback } from './adapter';
 import { IProjectConfig } from './project';
 
 /**
@@ -10,19 +9,24 @@ import { IProjectConfig } from './project';
 export interface IProgramOptions extends IProjectConfig { }
 
 /**
- * 
+ * Main program registry
  */
 export class Program {
   // define ivars
-  public cli: CLI.Command;
+  public root: CommandAdapter;
   public version: string;
   public ui = new UIWriter();
   public logger = new Logger();
 
   constructor(dir: string, private options?: IProgramOptions) {
     // load package json for the CLI package
-    const pkgJson = getPackageJson(dir);
-    this.version = pkgJson.version;
+    let pkgJson: any;
+    try {
+      pkgJson = getPackageJson(dir);
+      this.version = pkgJson.version;
+    } catch (e) {
+      throw new Error(`Cannot read project ${dir}`);
+    }
 
     this.options = {
       ...(pkgJson[CONSTANTS.PKG_CONFIG_KEY] || {}), // add from package json
@@ -33,9 +37,9 @@ export class Program {
     this.options.commandDir = this.options.commandDir || CONSTANTS.COMMAND_DIRECTORY;
 
     // create main cli
-    this.cli = CLI
-      .version(this.version, '-v, --version') // set default verison option
-      .usage('[command] [options]'); // set default usage
+    this.root = new CommandAdapter()
+      .version(this.version, '-v, --version'); // set default version option
+
   }
 
   /**
@@ -47,68 +51,89 @@ export class Program {
 
   /**
    * create a command for the CLI processor
-   * @param name - command name
+   * @param syntax - command name/syntax
    * @param desc - description for the command
    * @return A command bound to the main program
    */
-  private _command(name: string, desc?: string): IProgramCommand {
-    return this.cli.command(name, desc);
+  private _command(syntax: string, desc?: string): CommandAdapter {
+    return this.root.subcommand(syntax, desc);
   }
 
   /**
    * Register a command for help context
-   * @param name the command name (syntax) to be registered
+   * @param syntax the command name (syntax) to be registered
    * @param ctor the command implementation constructor
    */
-  public registerCommandHelp(name: string, ctor?: ICommandCtor<CommandImplementation>): IProgramCommand {
-    return (!ctor || !ctor.hidden) ? this.registerCommand(name, ctor) : null;
+  public registerCommandHelp(syntax: string, ctor?: ICommandCtor<CommandImplementation>, subcommands?: ICommandDefinition[]): CommandAdapter {
+    return !(ctor && ctor.hidden) ? this.registerCommand(syntax, ctor, subcommands) : null;
   }
 
   /**
    * register a resolved command by its name and constructor
-   * @param name the command name as registered
+   * @param syntax the command name as registered
    * @param ctor the instance contstructor
-   * @param subcommands any subcommands it may have
+   * @param subcommands Subcommands of the parent. If zero-length array, it is assumed subcommands exist so '<subcommand>' will be used
    */
-  public registerCommand(name: string, ctor?: ICommandCtor<CommandImplementation>, subcommands?: ICommandDefinition[]): IProgramCommand {
-    // define command syntax
+  public registerCommand(syntax: string, ctor?: ICommandCtor<CommandImplementation>, subcommands?: ICommandDefinition[]): CommandAdapter {
     const { commandDelim } = this.config;
-    const cmdPath = name.split(commandDelim);
-    const syntax = name;
 
-    // attach command to the program
-    const command = this._command(syntax); // create new command
+    // create new child adapter
+    const child = this._command(syntax); // create new command
 
-    // use static init to bind description and options
     if (ctor && ctor.init) {
-      ctor.init(command);
+      // use static init to bind description and options
+      ctor.init(child);
     } else if (subcommands) {
-      command.usage(`${commandDelim}<subcommand> [options]`)
+      if (subcommands.length) {
+        // subcommands exist, so we can register them with the adapter
+        subcommands.forEach(sub => {
+          child.subcommand(`${commandDelim}${sub.name}`, sub.ctor ? sub.ctor.description : null);
+        });
+      } else {
+        // subcommands stubbed only
+        child.subcommand(`${commandDelim}<subcommand>`);
+      }
     }
 
     // initialize with command class
     let instance: CommandImplementation;
 
+    // rubber meets road...
+    this._attachHandlers(child, ctor, subcommands);
+
+    return child;
+  }
+
+  /**
+   * Attach handlers to the adapter from the command implementation
+   * @param adapter A registered command processing adapter
+   * @param ctor The command implementation constructor
+   * @param subcommands Any subcommands
+   */
+  private _attachHandlers(adapter: CommandAdapter, ctor?: ICommandCtor<CommandImplementation>, subcommands?: ICommandDefinition[]): void {
+    // initialize with command class
+    let instance: CommandImplementation;
+
     // assign action while slicing non-interpreted args from command path
-    command.action((...invocation: any[]) => {
-      // console.log('OVERRIDE', syntax, {cmdPath, invocation});
-      const args = invocation.slice(name.split(' ').length - 1); // normalize based command path
-      const optIdx = args.findIndex(v => typeof v === 'object' && Reflect.has(v, 'options'));
-      const opts = args.splice(optIdx, 1);
+    adapter.invocation((options, ...invocation: any[]) => {
+      // normalize actual arguments based on command syntax (space-delims become args)
+      const args = invocation.slice(adapter.syntax.split(' ').length - 1); 
+      // const optIdx = args.findIndex(v => typeof v === 'object' && Reflect.has(v, 'options')); // locate the invocation argument containing options
+      // const opts = args.splice(optIdx, 1);
       // call with options as first argument
       instance = ctor && new ctor();
-      return instance && instance.run.call(instance, opts, ...args)
+      return instance && instance.run.call(instance, options, ...args)
         .catch(e => this.logger.error(e));
-    }).on('--help', () => {
+    }).onHelp(() => {
       instance = ctor && new ctor();
       if (subcommands && subcommands.length) {
-        // TODO: need to get descriptions, etc on the subcommands
-        this.ui.outputSection('Subcommands', subcommands.map(item => item.name));
+        // print subcommands in an aligned grid format
+        this.ui.outputSection('Subcommands', this.ui.grid(subcommands.map(item => {
+          return [item.name, item.ctor ? item.ctor.description : ''];
+        })));
       }
       return instance && instance.help();
     });
-
-    return command;
   }
 
   /**
@@ -117,13 +142,14 @@ export class Program {
    * @param cb optional callback when value is captured
    */
   public globalOption<T>(option: ICommandOption, cb?: IProgramOptionCallback<T>): this {
-    addCommandOptions(this.cli, option);
+
+    this.root.option(option);
     if (cb) {
       // determine option name from flag
       const flag = option.flag.match(/-+([\w-]+)$/);
       if (flag) {
         const name: string = flag[1];
-        addOptionCallback(this.cli, name, cb);
+        this.root.onOption(name, cb);
       } else {
         throw new Error(`Cannot determine option name from flag: ${option.flag}`);
       }
@@ -138,7 +164,7 @@ export class Program {
    * @param raw Flag to output the raw text without formatting
    */
   public globalHelp(body: string, heading?: string, raw?: boolean): this {
-    this.cli.on('--help', () => {
+    this.root.onHelp(() => {
       if (raw) {
         this.ui.output(body);
       } else  if (heading) {
@@ -156,14 +182,14 @@ export class Program {
    * @param argv argv as passthrough to the command processor
    */
   public exec(argv: string[]): void {
-    this.cli.parse(argv);
+    this.root.exec(argv);
   }
 
   /**
    * output help text
    */
-  public help(cb?: (str: string) => string): void {
-    this.cli.outputHelp(cb);
+  public help(): void {
+    this.root.showHelp();
   }
 
 }

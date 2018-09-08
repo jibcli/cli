@@ -6,6 +6,6 @@ export interface IProjectConfig {
   /** path to single command CLI */
   command?: string, 
   /** path to compiled command outputs */
-  commandDir: string,
+  commandDir?: string,
   commandDelim?: string | null,
 }

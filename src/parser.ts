@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Program, IProgramOptions } from './program';
 import { BaseCommand, CommandImplementation, ICommandCtor, ICommandDefinition } from './command';
-import { Logger, LOG_LEVEL, listRequireable } from './lib';
+import { Logger, LOG_LEVEL, listRequirable } from './lib';
 import { ICommandOption, IProgramOptionCallback } from './adapter';
 
 /**
@@ -17,27 +17,42 @@ interface IScanResult {
 /**
  * extension of main cli config with a working directory provided
  */
-export interface ICLIParserOptions extends IProgramOptions {
+export interface ICLIOptions extends IProgramOptions {
   basedir?: string; // working directory from which commands are based
 }
 
-export class CLIParser {
+export class CLI {
 
   public logger = new Logger();
   public program: Program;
-  private readonly COMMAND_DIR: string;
+  public readonly COMMAND_DIR: string;
 
-  constructor(private options?: ICLIParserOptions) {
+
+  /**
+   * Creates a new CLI parser instance
+   * @param options configurations or overrides to package.json configuration
+   * @example
+   *
+   ```typescript
+   const cli = new CLI({
+     basedir: __dirname,
+     commandDir: 'path/to/my/command/impls',
+     commandDelim: ':', // use a colon instead of space
+   });
+   ```
+   */
+  constructor(private options?: ICLIOptions) {
     // construct options
     this.options = {
       basedir: path.dirname(process.mainModule.filename), // location of file running the process
-      ...(options || {} as ICLIParserOptions),
+      ...(options || {} as ICLIOptions),
     };
 
-    const { basedir } = this.options;
+    // deconstruct options into consituents
+    const { basedir, ...passthrough } = this.options;
 
     // get main program
-    this.program = new Program(basedir, this.options);
+    this.program = new Program(basedir, passthrough);
 
     // assign ivars
     const { commandDir } = this.program.config;
@@ -100,10 +115,10 @@ export class CLIParser {
    * @param dir directory to scan
    */
   private _scanDir(dir: string): IScanResult[] {
-    return listRequireable(dir)
+    return listRequirable(dir)
       .map(item => {
         const location = path.join(dir, item);
-        const name = item.replace(/\.\w+$/, ''); // remove extension
+        const name = item.replace(/\.\w+$/, ''); // remove extension for name
         return {
           name,
           location,
@@ -167,32 +182,25 @@ export class CLIParser {
     this._scanDir(dir)
       .forEach(result => {
         // format command name syntax
-        const cmdName = cmdPath
-          .concat(result.name.replace(/\.\w+$/, ''))
+        const syntax = cmdPath
+          .concat(result.name)
           .join(commandDelim);
-        // this.logger.debug('help', cmdName, result.location);
+        // this.logger.debug('help init', cmdName, result.location);
 
         if (result.stats.isDirectory()) {
           // check and skip if file by same name as directory exists
-          if (!fs.existsSync(`${result.location}.js`)) {
+          if (!fs.existsSync(`${result.location}.js`) && !fs.existsSync(`${result.location}.ts`)) {
             // init without class
-            this.program.registerCommandHelp(`${cmdName}${commandDelim}<subcommand> [options]`);
+            this.program.registerCommandHelp(syntax, null, []);
           } else {
-            // has directory AND file by name hmm...
+            // has directory AND file by that name hmm...
           }
         } else {
           // load command path
           const mod = require(result.location);
-          if (mod.prototype instanceof BaseCommand) { // command is the only export
-            this.program.registerCommandHelp(cmdName, mod);
-          } else {
-            for (let exp in mod) {
-              if (mod[exp].prototype && mod[exp].prototype instanceof BaseCommand) {
-                // this.logger.debug(`init help ${cmdName}`);
-                this.program.registerCommandHelp(cmdName, mod[exp]);
-                break;
-              }
-            }
+          const ctor = this._extractCommandCtor(mod);
+          if (ctor) {
+            this.program.registerCommandHelp(syntax, ctor);
           }
         }
       });
@@ -255,7 +263,7 @@ export class CLIParser {
         // parse the program to invoke command run loop
         this.program.exec(argv);
       } else {
-        this.logger.warn(`Command '${this.logger.color.bold(args[0])}' was not found`);
+        this.logger.error(`Command '${this.logger.color.bold(args[0])}' was not found`);
         this.help();
         process.exit(1);
       }

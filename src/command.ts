@@ -1,4 +1,4 @@
-import { IProgramCommand, ICommandArgument, ICommandOption, addCommandOptions } from './adapter';
+import { CommandAdapter, ICommandArgument, ICommandOption } from './adapter';
 import { Logger, UIWriter } from './lib';
 
 
@@ -11,7 +11,7 @@ export interface ICommandCtor<T extends BaseCommand> {
   args: ICommandArgument[];
   options: ICommandOption[];
   ctor: ICommandCtor<T>;
-  init(command: IProgramCommand, ...argv: string[]): void;
+  init(command: CommandAdapter, ...argv: string[]): void;
   new (...args: any[]): T;
 }
 
@@ -105,8 +105,8 @@ export interface Command {
  ```
  */
 export const Command = (annotations: Command): Function => { // decorator factory
-  const { hidden, description, usage, args, options, allowUnknownOption } = annotations;
   return <T extends ICommandCtor<CommandImplementation>>(ctor: T) => { // class decorator
+    const { hidden, description, usage, args, options, allowUnknownOption } = annotations;
     // extend the decorated class ctor
     class CommandImpl extends ctor {
       // use annotations to seed static properties for reading without initializing
@@ -116,8 +116,6 @@ export const Command = (annotations: Command): Function => { // decorator factor
       public static readonly args: ICommandArgument[] = args || [];
       public static readonly options: ICommandOption[] = options;
       public static readonly allowUnknown: boolean = allowUnknownOption ? true : false;
-      // set ivars
-      public readonly className: string = ctor.name;
       /**
        * static getter for the (typed) constructor
        */
@@ -126,36 +124,23 @@ export const Command = (annotations: Command): Function => { // decorator factor
       }
 
       /**
-       * render parse-able argument syntax
-       */
-      private static get _argSyntax(): string {
-        return (this.args || [])
-          .map(arg => {
-            const spread = arg.multi ? '...' : '';
-            return arg.optional ? `[${arg.name}${spread}]` : `<${arg.name}${spread}>`
-          }).join(' ');
-      }
-
-      /**
        * init program with this command
        * @param program - command runner to which this is bound
-       * @param argv - all items listed to the rhs of the command path
        */
-      public static init(program: IProgramCommand, ...argv: string[]): void {
+      public static init(adapter: CommandAdapter): void {
+        
         // setup program
-        program
-          .description(this.description) // set description
-          .allowUnknownOption(this.allowUnknown) // allow/disallow unknown
-          .arguments(this._argSyntax) // set argument syntax
-          .usage(`${this.options ? '[options] ' : ''}${this._argSyntax}`);
-
-        // apply options for parsing
-        addCommandOptions(program, ...(this.options || []));
+        adapter
+          .description(this.description)
+          .arguments(this.args) // set argument syntax
+          .option(...(this.options || [])) // apply options
+          .allowUnknown(this.allowUnknown);
 
       }
 
       /**
-       * stub help text
+       * command specific help text emitter
+       * commands must write the text as well
        */
       public help(): void {
         return super.help && super.help();
@@ -172,7 +157,6 @@ export const Command = (annotations: Command): Function => { // decorator factor
  */
 export abstract class BaseCommand {
   // ivars
-  public readonly className: string;
   public logger = new Logger();
   public ui = new UIWriter();
 

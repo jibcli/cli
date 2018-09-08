@@ -1,6 +1,7 @@
 import { UIWriter } from '../../';
 import { Writable } from 'stream';
-import { UITab } from '../../lib';
+import { UITab, cleanText } from '../../lib';
+import chalk from 'chalk';
 
 describe('UI features', () => {
 
@@ -82,7 +83,26 @@ describe('UI features', () => {
       `, UITab.ONE);
     });
 
+    it('should clean text', () => {
+      expect(cleanText(chalk.red('foo'))).toEqual('foo');
+      expect(cleanText(chalk.red('bar')).length).toEqual(3);
+    });
 
+    it('should create a basic grid', () => {
+
+      const table: (string | number)[][] = [
+        ['1', 'this is', 'row 1'],
+        ['2     ', 'and this is', 'row 2 with longer text'],
+        [chalk.yellow('3'), 'this row has\n lines', chalk.green('colored text, and a \n line break')],
+        [4, 'bye'],
+      ];
+      const grid = ui.grid(table);
+      // console.log(grid);
+      // TODO: improve assertions
+      expect(grid).toContain(`1    this is         row 1                 
+2    and this is     row 2 with longer text`);
+      expect(grid).toContain(chalk.yellow('3') + '    ');
+    });
 
   });
 

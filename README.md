@@ -1,4 +1,4 @@
-# Jib Command Line Framework
+# Meet the jib Command Line Framework
 
 This source is meant to serve as a reusable CLI framework for projects with any
 level of CLI command functionality.
@@ -24,9 +24,9 @@ level of CLI command functionality.
 ```javascript
 #! /usr/bin/env node
 
-const { CLIParser } = require('@jib/cli');
+const { CLI } = require('@jib/cli');
 
-const parser = new CLIParser();
+const parser = new CLI();
 parser.parse(process.argv);
 
 if (!process.argv.slice(2).length) {

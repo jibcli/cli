@@ -1,7 +1,7 @@
 import * as os from 'os';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { listRequireable, getPackageJson, CONSTANTS } from '../../lib';
+import { listRequirable, getPackageJson, CONSTANTS } from '../../lib';
 
 describe('Package utilities', () => {
   let tmpdir: string = path.join(os.tmpdir(), '' + Math.random());
@@ -50,7 +50,7 @@ describe('Package utilities', () => {
     mkEmptyDir(tests.subdir);
     
     // run assertions
-    const list = listRequireable(tmpdir);
+    const list = listRequirable(tmpdir);
     // files
     expect(~list.indexOf(tests.jsFile)).toBeTruthy(`JavaScript file was excluded`);
     expect(~list.indexOf(tests.tsFile)).toBeTruthy(`TypeScript file was excluded`);

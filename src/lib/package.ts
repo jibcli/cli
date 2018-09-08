@@ -13,7 +13,7 @@ export function getPackageJson(dir: string): any {
  * List requireable module files in a given directory
  * @param dir directory to list
  */
-export function listRequireable(dir: string): string[] {
+export function listRequirable(dir: string): string[] {
   return fs.readdirSync(dir)
     .filter(name => /^[\w-]+(\.[jt]s)?$/.test(name));
 }
