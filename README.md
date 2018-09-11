@@ -45,12 +45,13 @@ best to use a `.js` file as the bin, rather than a file emitted by TypeScript.
 
 ## TODOs
 
-- [ ] Add support for single named command
-- [ ] Add support for `stdin`
+- [ ] Add support for single, named, command
+- [ ] Add support for `stdin` pipes
 - [ ] Add support for custom text additions on `-v|--version` (foo, copyright, etc.)
+- [ ] Add support for command aliases
 - [ ] Add support for plugins
+  - [ ] Yeoman generator framework `@jib/yeoman`
   - [ ] UI spinner `@jib/cli-spinner`
   - [ ] UI table `@jib/cli-table`
-  - [ ] UI image `@jib/cli-image`
-  - [ ] UI video `@jib/cli-video`
-  - [ ] Yeoman generator framework `@jib/yeoman`
+  - [ ] UI image rendering `@jib/cli-image`
+  - [ ] UI video rendering `@jib/cli-video`

@@ -78,20 +78,21 @@ export class Program {
     const { commandDelim } = this.config;
 
     // create new child adapter
-    const child = this._command(syntax); // create new command
-
+    let child: CommandAdapter;
     if (ctor && ctor.init) {
+      child = this._command(syntax); // create new command
       // use static init to bind description and options
       ctor.init(child);
     } else if (subcommands) {
       if (subcommands.length) {
+        child = this._command(syntax); // create new command
         // subcommands exist, so we can register them with the adapter
         subcommands.forEach(sub => {
           child.subcommand(`${commandDelim}${sub.name}`, sub.ctor ? sub.ctor.description : null);
         });
       } else {
         // subcommands stubbed only
-        child.subcommand(`${commandDelim}<subcommand>`);
+        child = this._command(`${syntax}${commandDelim}<subcommand>`); // create new command
       }
     }
 
@@ -115,15 +116,13 @@ export class Program {
     let instance: CommandImplementation;
 
     // assign action while slicing non-interpreted args from command path
-    adapter.invocation((options, ...invocation: any[]) => {
+    adapter.invocation((options, ...cmdArgs: any[]) => {
       // normalize actual arguments based on command syntax (space-delims become args)
-      const args = invocation.slice(adapter.syntax.split(' ').length - 1); 
-      // const optIdx = args.findIndex(v => typeof v === 'object' && Reflect.has(v, 'options')); // locate the invocation argument containing options
-      // const opts = args.splice(optIdx, 1);
-      // call with options as first argument
+      const args = cmdArgs.slice(adapter.syntax.split(' ').length - 1); 
       instance = ctor && new ctor();
       return instance && instance.run.call(instance, options, ...args)
-        .catch(e => this.logger.error(e));
+        .catch((e: any) => this.logger.error(e));
+
     }).onHelp(() => {
       instance = ctor && new ctor();
       if (subcommands && subcommands.length) {

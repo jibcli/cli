@@ -52,7 +52,7 @@ export class Logger extends UIWriter {
     return this._default;
   }
 
-  constructor(options: ILoggerOptions = {}) {
+  constructor(options: ILoggerOptions = <ILoggerOptions>{}) {
     super(options);
     this.name = options.name || null;
     this._level = options.level || Logger._defaultLevel;

@@ -11,14 +11,16 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "removeComments": false,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "suppressImplicitAnyIndexErrors": true,
+    "forceConsistentCasingInFileNames": true,
     "typeRoots": [
       "./node_modules/@types/"
     ]
   },
   "exclude": [
     "build",
-    "node_modules"
+    "node_modules",
+    "src/spec/support/impl",
   ]
 }

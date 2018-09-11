@@ -13,7 +13,9 @@ describe('UI features', () => {
 
     beforeEach(() => {
       class NoopStream extends Writable {
-        _write(chunk, encoding, cb) { cb() }
+        _write(chunk: Buffer, encoding: string, cb: () => void) {
+          cb()
+        }
       };
       mockStream = new NoopStream();
       ui = new UIWriter({ stream: mockStream });
@@ -56,7 +58,7 @@ describe('UI features', () => {
     });
 
     it('should write objects', () => {
-      spyOn(mockStream, 'write').and.callFake(msg => {
+      spyOn(mockStream, 'write').and.callFake((msg: string) => {
         expect(typeof msg).toBe('string');
       });
       let msg: any = {foo: 'bar'};
@@ -66,14 +68,14 @@ describe('UI features', () => {
     });
     
     it('should format basic heading ', () => {
-      const spy = spyOn(mockStream, 'write').and.callFake(str => {
+      const spy = spyOn(mockStream, 'write').and.callFake((str: string) => {
         return isNotNewLine(str) && expect(str).toContain(`Heading:\n\n    body text`);
       });
       ui.outputSection('Heading', 'body text');
     });
 
     it('should format lines', () => {
-      const spy = spyOn(mockStream, 'write').and.callFake(str => {
+      const spy = spyOn(mockStream, 'write').and.callFake((str: string) => {
         return isNotNewLine(str) && expect(str).toContain(`  one\n  two`);
       });
 

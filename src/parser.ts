@@ -37,7 +37,7 @@ export class CLI {
    const cli = new CLI({
      basedir: __dirname,
      commandDir: 'path/to/my/command/impls',
-     commandDelim: ':', // use a colon instead of space
+     commandDelim: ':', // use colons instead of spaces to traverse command tree
    });
    ```
    */
@@ -62,9 +62,10 @@ export class CLI {
   /**
    * locate command by right recursive argv lookup.
    * NOTE: this strategy precludes aliasing with commander.
-   * @param args - argument list to detect command
+   * @param dir directory where to load
+   * @param args argument list to detect command
    */
-  private _loadCommand(args: string[]): ICommandDefinition {
+  private _loadCommand(dir: string, args: string[]): ICommandDefinition {
     const { commandDelim } = this.program.config;
 
     let i = args.length;
@@ -72,7 +73,7 @@ export class CLI {
 
     while (i--) {
       // find command at argument path
-      const cmdFilePath = path.join(this.COMMAND_DIR, ...args.slice(0, i + 1));
+      const cmdFilePath = path.join(dir, ...args.slice(0, i + 1));
       let mod: any;
       try { // require() fails for nonsensical paths
         mod = require(cmdFilePath);
@@ -163,7 +164,7 @@ export class CLI {
         }
       }
     } else {
-      // export is the command Ctor (export = Foo...)
+      // when export is the command Ctor (export = Foo...)
       ctor = mod;
     }
     return ctor;
@@ -255,7 +256,7 @@ export class CLI {
       this.program.exec(argv);
     } else {
       // locate command in specified directory
-      const commandModule: ICommandDefinition = this._loadCommand(this._normalizedArgs(args));
+      const commandModule: ICommandDefinition = this._loadCommand(this.COMMAND_DIR, this._normalizedArgs(args));
       if (commandModule) {
         // init with program
         const { name, ctor, subcommands } = commandModule;

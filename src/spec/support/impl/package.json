@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "jib": {
+    "commandDir": "commands",
+    "commandDelim": " "
+  },
+  "dependencies": {
+    "@jib/cli": "file:../../../../"
+  }
+}

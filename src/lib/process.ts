@@ -24,5 +24,11 @@ export class ChildPromise {
   public static spawn<T>(command: string, args?: string[], options?: IChildSpawnOptions): Promise<T> {
     return this._child('spawn', command, args, options);
   }
-  
+  public static fork<T>(command: string, args?: string[], options?: child_process.ExecOptions): Promise<T> {
+    return this._child('fork', command, args, options);
+  }
+  public static exec<T>(command: string, args?: string[], options?: child_process.ExecOptions): Promise<T> {
+    return this._child('exec', command, args, options);
+  }
+
 }

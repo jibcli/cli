@@ -117,6 +117,7 @@ export class CommandAdapter {
     if (this._argString) {
       usage.push(this._argString);
     }
+    console.log(this.syntax, usage);
     this.cmd.usage(usage.join(' '));
   }
 
@@ -240,7 +241,7 @@ export class CommandAdapter {
       // locate the invocation argument containing options
       // commander _usually_ has options last, but not always
       const optIdx = invocation.findIndex(v => typeof v === 'object' && Reflect.has(v, 'options')); 
-      const opts = invocation.splice(optIdx, 1);
+      const opts = invocation.splice(optIdx, 1).shift();
       handler(opts, ...invocation);
     });
     return this;
