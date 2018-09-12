@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Program, IProgramOptions } from './program';
 import { BaseCommand, CommandImplementation, ICommandCtor, ICommandDefinition } from './command';
-import { Logger, LOG_LEVEL, listRequirable } from './lib';
+import { Log, Project } from './lib';
 import { ICommandOption, IProgramOptionCallback } from './adapter';
 
 /**
@@ -23,23 +23,21 @@ export interface ICLIOptions extends IProgramOptions {
 
 export class CLI {
 
-  public logger = new Logger();
+  public logger = new Log.Logger();
   public program: Program;
-  public readonly COMMAND_DIR: string;
 
 
   /**
    * Creates a new CLI parser instance
-   * @param options configurations or overrides to package.json configuration
-   * @example
    *
-   ```typescript
-   const cli = new CLI({
-     basedir: __dirname,
-     commandDir: 'path/to/my/command/impls',
-     commandDelim: ':', // use colons instead of spaces to traverse command tree
-   });
-   ```
+   * ```typescript
+   * const cli = new CLI({
+   *   basedir: __dirname,
+   *   commandDir: './relative/path/to/my/command/impls',
+   *   commandDelim: ':', // use colons instead of spaces to traverse command tree
+   * });
+   * ```
+   * @param options configurations or overrides to package.json configuration
    */
   constructor(private options?: ICLIOptions) {
     // construct options
@@ -51,17 +49,22 @@ export class CLI {
     // deconstruct options into consituents
     const { basedir, ...passthrough } = this.options;
 
-    // get main program
+    // instantiate main program
     this.program = new Program(basedir, passthrough);
+  }
 
-    // assign ivars
+  /**
+   * get the base command dir
+   */
+  private get _commandRoot(): string {
+    const { basedir } = this.options;
     const { commandDir } = this.program.config;
-    this.COMMAND_DIR = path.join(basedir, commandDir);
+    return path.join(basedir, commandDir);
   }
 
   /**
    * locate command by right recursive argv lookup.
-   * NOTE: this strategy precludes aliasing with commander.
+   * NOTE: CLI strategy precludes aliasing with commander.
    * @param dir directory where to load
    * @param args argument list to detect command
    */
@@ -116,7 +119,7 @@ export class CLI {
    * @param dir directory to scan
    */
   private _scanDir(dir: string): IScanResult[] {
-    return listRequirable(dir)
+    return Project.listRequirable(dir)
       .map(item => {
         const location = path.join(dir, item);
         const name = item.replace(/\.\w+$/, ''); // remove extension for name
@@ -175,7 +178,7 @@ export class CLI {
    * @param dir directory of commands
    * @param parent parent command list
    */
-  private _initHelpFromPath(dir: string, parent?: string[]): void {
+  private _initHelpFromPath(dir: string, parent?: string[]): CLI {
 
     const { commandDelim } = this.program.config;
 
@@ -205,6 +208,8 @@ export class CLI {
           }
         }
       });
+
+    return this;
   }
 
   /**
@@ -213,7 +218,9 @@ export class CLI {
    */
   private _normalizedArgs(args: string[]): string[] {
     const { commandDelim } = this.program.config;
-    return [].concat(...args.map(arg => arg.split(commandDelim)));
+    return args && args.length ? 
+      args[0].split(commandDelim).concat(args.slice(1)) :
+      args;
   }
 
   /**
@@ -222,7 +229,7 @@ export class CLI {
    * @param heading Add ui heading
    * @param raw Flag to output the raw text without formatting
    */
-  public addGlobalHelp(body: string, heading?: string, raw?: boolean): this {
+  public addGlobalHelp(body: string, heading?: string, raw?: boolean): CLI {
     this.program.globalHelp(body, heading, raw);
     return this;
   }
@@ -232,7 +239,7 @@ export class CLI {
    * @param option global option configuration object
    * @param cb parsed option value callback
    */
-  public addGlobalOption<T>(option: ICommandOption, cb?: IProgramOptionCallback<T>): this {
+  public addGlobalOption<T>(option: ICommandOption, cb?: IProgramOptionCallback<T>): CLI {
     this.program.globalOption<T>(option, cb);
     return this;
   }
@@ -240,43 +247,69 @@ export class CLI {
   /**
    * Main execution method.
    * Parse arguments from the command line and run the program.
+   * 
+   * ```typescript
+   * import { CLI } from '@jib/cli';
+   * 
+   * const parser = new CLI({
+   *   // options
+   * });
+   * parser.parse(process.argv);
+   * ```
    * @param argv raw command line arguments
    */
-  public parse(argv: string[]): this {
-    const args = argv.slice(2);
+  public parse(argv: string[]): void {
+    // normalize arguments to parse
+    const args = this._normalizedArgs(argv.slice(2));
+    
+    // placeholder for module resolution
+    let commandModule: ICommandDefinition;
 
-    // handle help & version
+    // handle help & version, or special cases
     const isHelp = args.length && /^-+h(elp)?$/.test(args[0]);
-    if (!args.length || isHelp) { // case when no arguments passed, or explicitly -h|--help
-      this._initHelpFromPath(this.COMMAND_DIR);
-      if (isHelp) {
-        this.help();
-      }
-    } else if (/^-+v(ersion)?$/.test(args[0])) { // case when explicitly -v|--version
-      this.program.exec(argv);
+    const isVersion = args.length && /^-+v(ersion)?$/.test(args[0]);
+    const { rootCommand } = this.program.config;
+
+    if (isVersion) { // explicitly -v|--version
+      return this.program.exec(argv);
+    } else if (isHelp && !rootCommand) { // explicitly -h|--help
+      this._initHelpFromPath(this._commandRoot).help();
+      return;
     } else {
-      // locate command in specified directory
-      const commandModule: ICommandDefinition = this._loadCommand(this.COMMAND_DIR, this._normalizedArgs(args));
+      // locate command according to arguments/options
+      commandModule = this._loadCommand(this._commandRoot, args) ||
+        rootCommand && this._loadCommand(this._commandRoot, [rootCommand].concat(args));
+
       if (commandModule) {
         // init with program
         const { name, ctor, subcommands } = commandModule;
-        this.program.registerCommand(name, ctor, subcommands);
+
+        // register the command handler
+        if (name === rootCommand) { // single command
+          this.program.registerRoot(ctor);
+        } else {
+          this.program.registerCommand(name, ctor, subcommands);
+        }
+
         // parse the program to invoke command run loop
         this.program.exec(argv);
       } else {
-        this.logger.error(`Command '${this.logger.color.bold(args[0])}' was not found`);
-        this.help();
-        process.exit(1);
+        // arguments could not resolve a command, so proceed with help
+        this._initHelpFromPath(this._commandRoot).help();
+        // since args were passed, yet the command could not resolve, it's an error
+        if (args.length) {
+          this.logger.error(`Command '${this.logger.color.bold(args[0])}' was not found`);
+          process.exit(1);
+        }
       }
-    }
 
-    return this;
+    }
   }
 
   /**
    * Manually output help text
    */
-  public help(): this {
+  public help(): CLI {
     this.program.help();
     return this;
   }

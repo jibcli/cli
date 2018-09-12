@@ -23,15 +23,27 @@ export interface ICommandArgument {
   // default?: string | number | any[] | object;
 }
 
-/** Option flag syntax. Can include -{shorthand}, --{longhand} {[value]} such as -c, --cheese [type] */
-export type IOptionFlag = string;
+/**
+ * Option flag syntax of the format `-{shorthand}, --{longhand} {[value]}`
+ * 
+ * - `-c, --cheese <type>` requires "type" in cheese option
+ * - `-p, --project [path]` "path" is optional for the project option
+ * - `-d, --debug` simple boolean option
+ * - `--test` a longhand only flag
+ * 
+ * Short boolean flags may be passed as a single argument, such as `-abc`. 
+ * Multi-word arguments like `--with-token` become camelCase, as `options.withToken`.
+ * Also note that multi-word arguments with `--no` prefix will result in `false` as
+ * the option name value. So `--no-output` would parse as `options.output === false`
+ */
+export type TOptionFlag = string;
 
 /**
  * Command option interface
  */
 export interface ICommandOption {
   /** Option flag syntax. */
-  flag: IOptionFlag;
+  flag: TOptionFlag;
   /** Describe the option to be listed with help */
   description?: string;
   /** Default option value */
@@ -50,6 +62,7 @@ export interface IProgramOptionCallback<T> {
 /**
  * CommanderJS adapter class for registering commands and applying methods to
  * a command instance.
+ * @ignore
  */
 export class CommandAdapter {
 
@@ -85,7 +98,7 @@ export class CommandAdapter {
    * @param version version string for the CLI
    * @param flag custom version flag syntax
    */
-  public version(version: string, flag?: IOptionFlag): this {
+  public version(version: string, flag?: TOptionFlag): CommandAdapter {
     this.cmd.version(version, flag);
     return this;
   }
@@ -117,7 +130,6 @@ export class CommandAdapter {
     if (this._argString) {
       usage.push(this._argString);
     }
-    console.log(this.syntax, usage);
     this.cmd.usage(usage.join(' '));
   }
 
@@ -125,7 +137,7 @@ export class CommandAdapter {
    * Add command description
    * @param desc the command description
    */
-  public description(desc: string): this {
+  public description(desc: string): CommandAdapter {
     this.cmd.description(desc);
     return this;
   }
@@ -134,7 +146,7 @@ export class CommandAdapter {
    * Apply arguments as parse-able syntax to the command
    * @param args command argument(s) to apply
    */
-  public arguments(args?: ICommandArgument[]): this {
+  public arguments(args?: ICommandArgument[]): CommandAdapter {
     this._argString = this._argumentSyntax(args);
     this.cmd.arguments(this._argString);
     this._setUsage();
@@ -156,7 +168,7 @@ export class CommandAdapter {
    * Add options to a command or program
    * @param options one or more options to add
    */
-  public option(...options: ICommandOption[]): this {
+  public option(...options: ICommandOption[]): CommandAdapter {
     this._hasOptions = !!options.length;
     options.forEach(opt => {
       if (opt.fn) {
@@ -173,7 +185,7 @@ export class CommandAdapter {
    * Support unknown options
    * @param allow whether or not to allow unknown options
    */
-  public allowUnknown(allow: boolean): this {
+  public allowUnknown(allow: boolean): CommandAdapter {
     this.cmd.allowUnknownOption(allow);
     return this;
   }
@@ -183,7 +195,7 @@ export class CommandAdapter {
    * @param event adapter emitter event
    * @param listener event listener
    */
-  public on(event: string | symbol, listener: any): this {
+  public on(event: string | symbol, listener: any): CommandAdapter {
     this.cmd.on(event, listener);
     return this;
   }
@@ -193,7 +205,7 @@ export class CommandAdapter {
    * @param name the option (long) name
    * @param cb value callback when option is parsed
    */
-  public onOption<T>(name: string, cb: IProgramOptionCallback<T>): this {
+  public onOption<T>(name: string, cb: IProgramOptionCallback<T>): CommandAdapter {
     return this.on(`option:${name}`, cb);
   }
 
@@ -201,7 +213,7 @@ export class CommandAdapter {
    * Register help listener callback
    * @param cb callback when help is parsed
    */
-  public onHelp(cb: () => void): this {
+  public onHelp(cb: () => void): CommandAdapter {
     return this.on(CommandAdapter.HELP_FLAG, cb);
   }
 
@@ -209,7 +221,7 @@ export class CommandAdapter {
    * Show help information
    * restricted to main cli only
    */
-  public showHelp(): this {
+  public showHelp(): CommandAdapter {
     this._ensureRoot('Help text output only available on the root adapter');
     this.cmd.outputHelp();
     return this;
@@ -219,7 +231,7 @@ export class CommandAdapter {
    * execute the argv against the registered commands
    * @param argv argv as passthrough to the command processor
    */
-  public exec(argv: string[]): this {
+  public exec(argv: string[]): CommandAdapter {
     this._ensureRoot('Can only exec the root adapter');
     this.cmd.parse(argv);
     return this;
@@ -227,15 +239,14 @@ export class CommandAdapter {
 
   /**
    * Add an invocation handler to the command
-   * @param handler command invocation callback when the command is parsed
-   * @example
    * ```typescript
    * adapter.invocation((options: any, ...args: string[]) => {
    *   // handle options & arguments
    * })
+   * @param handler command invocation callback when the command is parsed
    * ```
    */
-  public invocation(handler: (options: any, ...args: any[]) => void): this {
+  public invocation(handler: (options: any, ...args: any[]) => void): CommandAdapter {
     this.cmd.action((...invocation: any[]) => {
       // console.log('OVERRIDE', this.syntax, {invocation});
       // locate the invocation argument containing options

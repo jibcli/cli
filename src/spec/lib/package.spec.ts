@@ -1,7 +1,7 @@
 import * as os from 'os';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { listRequirable, getPackageJson, CONSTANTS } from '../../lib';
+import { Project, CONSTANTS } from '../../lib';
 
 describe('Package utilities', () => {
   let tmpdir: string = path.join(os.tmpdir(), '' + Math.random());
@@ -26,7 +26,7 @@ describe('Package utilities', () => {
     };
     fs.writeFileSync(path.join(tmpdir, 'package.json'), JSON.stringify(pkg, null, 2));
 
-    let read = getPackageJson(tmpdir);
+    let read = Project.getPackageJson(tmpdir);
     Object.keys(pkg).forEach(key => {
       expect(read[key]).toEqual(pkg[key], `${key} not read correctly`);
     });
@@ -50,7 +50,7 @@ describe('Package utilities', () => {
     mkEmptyDir(tests.subdir);
     
     // run assertions
-    const list = listRequirable(tmpdir);
+    const list = Project.listRequirable(tmpdir);
     // files
     expect(~list.indexOf(tests.jsFile)).toBeTruthy(`JavaScript file was excluded`);
     expect(~list.indexOf(tests.tsFile)).toBeTruthy(`TypeScript file was excluded`);

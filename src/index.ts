@@ -1,5 +1,5 @@
 // expose some core libs
-export { UIWriter, Logger, LOG_LEVEL } from './lib';
+export { UI, Log } from './lib';
 // expose main objects and interfaces
 export { IProjectConfig } from './project';
 export { Command, BaseCommand } from './command';

@@ -1,4 +1,6 @@
 .*
+typedoc.js
 src
 build/spec
 reports
+docs

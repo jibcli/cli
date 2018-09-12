@@ -3,9 +3,18 @@
 This source is meant to serve as a reusable CLI framework for projects with any
 level of CLI command functionality.
 
+## Why `@jib`
+
+OK, so there's actually _some_ method to the madness... The `@jib/cli` is
+based on the extremely popular [Commander.js](https://www.npmjs.com/package/commander)
+CLI development framework. As many sailors might attest, the **_jib_** is an essential
+component to commanding their ship - thus the name.
+
+> **jib:** A triangular staysail set forward of the forwardmost mast.
+
 ## Get Started with Jib
 
-1. Configure the Jib CLI in `package.json`:
+1. Install & configure the `@jib/cli` in `package.json`:
 
 ```javascript
 {
@@ -13,20 +22,28 @@ level of CLI command functionality.
     "commandDir": "./build/commands", // default "commands"
     "commandDelim": ":", // default " "
   },
+  "dependencies": {
+    "@jib/cli": "latest"
+  }
+}
+```
+
+2. Add define `bin.js` file to process command line arguments:
+
+```javascript
+{
   "bin": {
     "mycmd": "bin.js"
   }
 }
 ```
 
-2. Add `bin.js` file to process command line arguments:
-
 ```javascript
 #! /usr/bin/env node
 
 const { CLI } = require('@jib/cli');
 
-const parser = new CLI();
+const parser = new CLI({ /* options */ });
 parser.parse(process.argv);
 
 if (!process.argv.slice(2).length) {
@@ -35,19 +52,21 @@ if (!process.argv.slice(2).length) {
 ```
 
 > **NOTE:** because of certain nuances in local development enviromments, it is
-best to use a `.js` file as the bin, rather than a file emitted by TypeScript.
+best to use a JavaScript file as the bin, rather than a file emitted by TypeScript.
 
 3. Add files and folders to the `commandDir` path, then invoke by name:
 
 ```typescript
-// TODO
+import { Command, BaseCommand }
 ```
 
 ## TODOs
 
-- [ ] Add support for single, named, command
+- [x] Add support for single, named, command - this is configured as `"rootCommand"`
+- [ ] Test harness for implementations `@jib/cli/testing`
+- [ ] Add `Dockerfile` to cli implementations for docker-based execution
 - [ ] Add support for `stdin` pipes
-- [ ] Add support for custom text additions on `-v|--version` (foo, copyright, etc.)
+- [ ] Add support for custom text additions on `-v|--version` (copyright, foo, etc.)
 - [ ] Add support for command aliases
 - [ ] Add support for plugins
   - [ ] Yeoman generator framework `@jib/yeoman`

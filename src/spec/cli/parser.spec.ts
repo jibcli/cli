@@ -12,10 +12,10 @@ import chalk from 'chalk';
  */
 const ChildBin = 
   (entry: string, args: string[], opts: IChildSpawnOptions) => {
-    return ChildPromise.spawn<string>('npm', ['bin'], {
+    return ChildPromise.spawn('npm', ['bin'], {
       cwd: __dirname,
     }).then(bin => {
-      return ChildPromise.spawn<any>(path.join(bin, 'ts-node'),
+      return ChildPromise.spawn(path.join(bin, 'ts-node'),
         ['--transpile-only'].concat(entry, ...args),
         {...opts});
     });
@@ -36,7 +36,7 @@ describe('CLI', () => {
   it('should support configuration', () => {
     // read derivative configurations
     const { commandDir, commandDelim } = cli.program.config;
-    expect(cli.COMMAND_DIR).toContain(testImplDir);
+    expect(cli['_commandRoot']).toContain(testImplDir);
     expect(commandDir).toEqual(CONSTANTS.COMMAND_DIRECTORY);
     expect(commandDelim).toEqual(CONSTANTS.COMMAND_DELIMITER);
   });
@@ -67,7 +67,7 @@ describe('CLI', () => {
         .then(done).catch(done.fail);
     });
 
-    describe(`named command: ${chalk.bold('hello.ts')}`, () => {
+    describe(`named top level command: ${chalk.bold('hello.ts')}`, () => {
 
       it('should get help', done => {
         testImpl(['hello', '-h'])
@@ -100,6 +100,8 @@ describe('CLI', () => {
           .then(done).catch(done.fail);
       });
     }); // end 'hello'
+
+    
 
   }); // end implementations
 

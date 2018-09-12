@@ -2,6 +2,10 @@ import * as child_process from 'child_process';
 
 export interface IChildSpawnOptions extends child_process.SpawnOptions { }
 
+/**
+ * Execute child processes as promise
+ * @ignore
+ */
 export class ChildPromise {
 
   private static _child(type: string, command: string, args?: string[], options?: any): Promise<any> {
@@ -21,14 +25,19 @@ export class ChildPromise {
     });
   }
 
-  public static spawn<T>(command: string, args?: string[], options?: IChildSpawnOptions): Promise<T> {
+  public static spawn(command: string, args?: string[], options?: IChildSpawnOptions): Promise<string> {
     return this._child('spawn', command, args, options);
   }
-  public static fork<T>(command: string, args?: string[], options?: child_process.ExecOptions): Promise<T> {
+  public static fork(command: string, args?: string[], options?: child_process.ExecOptions): Promise<string> {
     return this._child('fork', command, args, options);
   }
-  public static exec<T>(command: string, args?: string[], options?: child_process.ExecOptions): Promise<T> {
-    return this._child('exec', command, args, options);
+  public static exec(command: string, options?: child_process.ExecOptions): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const cb = (err: child_process.ExecException, stdout: string, stderr: string) => {
+        return err ? reject(err) : resolve(stdout);
+      };
+      return options ? child_process.exec(command, options, cb) : child_process.exec(command, cb);
+    });
   }
 
 }

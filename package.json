@@ -7,6 +7,7 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "npm run build -- -w",
+    "docs": "rm -rf ./docs && typedoc --options ./typedoc.js --exclude '**/*+(spec|templates|node_modules)/**' --out ./docs ./src",
     "prebuild": "rm -rf build",
     "test": "nyc jasmine --config=src/spec/support/jasmine.json"
   },
@@ -25,6 +26,7 @@
     "jasmine-spec-reporter": "^4.2.1",
     "nyc": "^12.0.2",
     "ts-node": "^7.0.1",
+    "typedoc": "^0.12.0",
     "typescript": "^3.0.1"
   }
 }

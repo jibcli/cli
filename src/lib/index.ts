@@ -1,5 +1,5 @@
 export * from './constants';
 export * from './logger';
-export * from './package';
+export * from './project';
 export * from './process';
 export * from './ui';

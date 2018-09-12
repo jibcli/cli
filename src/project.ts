@@ -1,11 +1,11 @@
 /**
- * CLI configuration expected in a project's package.json under the respective
- * namespace
+ * CLI configuration expected in a project's `package.json` configuration
  */
 export interface IProjectConfig {
-  /** path to single command CLI */
-  command?: string, 
+  /** path to default command implementation, or a single command CLI */
+  rootCommand?: string,
   /** path to compiled command outputs */
   commandDir?: string,
+  /** syntax delimiter for subcommands. (default is `' '`) */
   commandDelim?: string | null,
 }

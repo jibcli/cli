@@ -1,13 +1,12 @@
-import { UIWriter } from '../../';
+import { UI } from '../../';
 import { Writable } from 'stream';
-import { UITab, cleanText } from '../../lib';
 import chalk from 'chalk';
 
 describe('UI features', () => {
 
   describe('Writer', () => {
     let mockStream: Writable;
-    let ui: UIWriter;
+    let ui: UI.Writer;
 
     const isNotNewLine = (str: string): boolean =>  str && !!str.replace(/\n/g, '');
 
@@ -18,11 +17,11 @@ describe('UI features', () => {
         }
       };
       mockStream = new NoopStream();
-      ui = new UIWriter({ stream: mockStream });
+      ui = new UI.Writer({ stream: mockStream });
     });
 
     it('should default to stdout stream', () => {
-      let ui = new UIWriter();
+      let ui = new UI.Writer();
       spyOn(process.stdout, 'write').and.throwError('hi');
       expect(ui.write.bind(ui, 'hello')).toThrowError('hi');
     });
@@ -82,12 +81,12 @@ describe('UI features', () => {
       ui.outputLines(`
       one
       two
-      `, UITab.ONE);
+      `, UI.TAB.ONE);
     });
 
     it('should clean text', () => {
-      expect(cleanText(chalk.red('foo'))).toEqual('foo');
-      expect(cleanText(chalk.red('bar')).length).toEqual(3);
+      expect(UI.cleanText(chalk.red('foo'))).toEqual('foo');
+      expect(UI.cleanText(chalk.red('bar')).length).toEqual(3);
     });
 
     it('should create a basic grid', () => {

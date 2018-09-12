@@ -1,5 +1,5 @@
 import { ICommandCtor, CommandImplementation, ICommandDefinition } from './command';
-import { getPackageJson, CONSTANTS, UIWriter, Logger } from './lib';
+import { Project, CONSTANTS, UI, Log } from './lib';
 import { CommandAdapter, ICommandOption, IProgramOptionCallback } from './adapter';
 import { IProjectConfig } from './project';
 
@@ -15,14 +15,14 @@ export class Program {
   // define ivars
   public root: CommandAdapter;
   public version: string;
-  public ui = new UIWriter();
-  public logger = new Logger();
+  private _ui = new UI.Writer();
+  private _logger = new Log.Logger();
 
   constructor(dir: string, private options?: IProgramOptions) {
     // load package json for the CLI package
     let pkgJson: any;
     try {
-      pkgJson = getPackageJson(dir);
+      pkgJson = Project.getPackageJson(dir);
       this.version = pkgJson.version;
     } catch (e) {
       throw new Error(`Cannot read project ${dir}`);
@@ -69,6 +69,16 @@ export class Program {
   }
 
   /**
+   * Register a class as the handler for the root command
+   * @param ctor The root command "default" implementation
+   */
+  public registerRoot(ctor?: ICommandCtor<CommandImplementation>): CommandAdapter {
+    this._applyCommandMeta(this.root, ctor);
+    this._attachHandlers(this.root, ctor);
+    return this.root;
+  }
+
+  /**
    * register a resolved command by its name and constructor
    * @param syntax the command name as registered
    * @param ctor the instance contstructor
@@ -79,10 +89,11 @@ export class Program {
 
     // create new child adapter
     let child: CommandAdapter;
-    if (ctor && ctor.init) {
-      child = this._command(syntax); // create new command
-      // use static init to bind description and options
-      ctor.init(child);
+    if (ctor) {
+      // setup command from static annotations
+      child = this._command(syntax);
+      this._applyCommandMeta(child, ctor);
+
     } else if (subcommands) {
       if (subcommands.length) {
         child = this._command(syntax); // create new command
@@ -96,13 +107,23 @@ export class Program {
       }
     }
 
-    // initialize with command class
-    let instance: CommandImplementation;
-
-    // rubber meets road...
+    // where rubber meets road...
     this._attachHandlers(child, ctor, subcommands);
 
     return child;
+  }
+
+  /**
+   * Apply command constructor annotation metadata to the adapter implementation
+   * @param adapter 
+   * @param ctor 
+   */
+  private _applyCommandMeta(adapter: CommandAdapter, ctor: ICommandCtor<CommandImplementation>): CommandAdapter {
+    adapter.description(ctor.description)
+      .arguments(ctor.args) // set argument syntax
+      .option(...(ctor.options || [])) // apply options
+      .allowUnknown(ctor.allowUnknown);
+    return adapter;
   }
 
   /**
@@ -116,18 +137,18 @@ export class Program {
     let instance: CommandImplementation;
 
     // assign action while slicing non-interpreted args from command path
-    adapter.invocation((options, ...cmdArgs: any[]) => {
+    adapter.invocation((options: any, ...cmdArgs: any[]) => {
       // normalize actual arguments based on command syntax (space-delims become args)
-      const args = cmdArgs.slice(adapter.syntax.split(' ').length - 1); 
+      const args: any[] = adapter.syntax ? cmdArgs.slice(adapter.syntax.split(' ').length - 1) : cmdArgs;
       instance = ctor && new ctor();
       return instance && instance.run.call(instance, options, ...args)
-        .catch((e: any) => this.logger.error(e));
+        .catch((e: any) => this._logger.error(e));
 
     }).onHelp(() => {
       instance = ctor && new ctor();
       if (subcommands && subcommands.length) {
         // print subcommands in an aligned grid format
-        this.ui.outputSection('Subcommands', this.ui.grid(subcommands.map(item => {
+        this._ui.outputSection('Subcommands', this._ui.grid(subcommands.map(item => {
           return [item.name, item.ctor ? item.ctor.description : ''];
         })));
       }
@@ -140,7 +161,7 @@ export class Program {
    * @param option option configuration object
    * @param cb optional callback when value is captured
    */
-  public globalOption<T>(option: ICommandOption, cb?: IProgramOptionCallback<T>): this {
+  public globalOption<T>(option: ICommandOption, cb?: IProgramOptionCallback<T>): Program {
 
     this.root.option(option);
     if (cb) {
@@ -162,15 +183,15 @@ export class Program {
    * @param heading Add ui heading
    * @param raw Flag to output the raw text without formatting
    */
-  public globalHelp(body: string, heading?: string, raw?: boolean): this {
+  public globalHelp(body: string, heading?: string, raw?: boolean): Program {
     this.root.onHelp(() => {
       if (raw) {
-        this.ui.output(body);
+        this._ui.output(body);
       } else  if (heading) {
-        this.ui.outputSection(heading, body);
+        this._ui.outputSection(heading, body);
       } else {
-        this.ui.output();
-        this.ui.outputLines(body, 1);
+        this._ui.output();
+        this._ui.outputLines(body, 1);
       }
     });
     return this;

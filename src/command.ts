@@ -1,5 +1,5 @@
-import { CommandAdapter, ICommandArgument, ICommandOption } from './adapter';
-import { Logger, UIWriter } from './lib';
+import { ICommandArgument, ICommandOption } from './adapter';
+import { Log, UI } from './lib';
 
 
 /**
@@ -10,8 +10,8 @@ export interface ICommandCtor<T extends BaseCommand> {
   description: string;
   args: ICommandArgument[];
   options: ICommandOption[];
+  allowUnknown: boolean;
   ctor: ICommandCtor<T>;
-  init(command: CommandAdapter, ...argv: string[]): void;
   new (...args: any[]): T;
 }
 
@@ -33,21 +33,17 @@ export interface ICommandDefinition {
  */
 export interface CommandImplementation extends BaseCommand {
   help?(): void;
-  run(...args: any[]): Promise<any>;
+  run(options: any, ...args: any[]): Promise<any>;
 }
 
 /**
  * Annotations object for the Command implementation decorator
  */
-export interface Command {
+export interface ICommand {
   /**
    * Describe what the command does
    */
   description: string;
-  /**
-   * Define custom usage syntax
-   */
-  usage?: string;
   /**
    * Specify arguments expected by the command. All arguments will be passed to
    * the `run` method in the order which they are declared. If providing variadic
@@ -64,18 +60,18 @@ export interface Command {
    * where the first argument is the current value, the second argument is the
    * aggregated values to that point, and the new object is returned.
    *
-   ```typescript
-   options: [
-     { flag: '-f, --file <name>', description: 'file name', fn: /\.zip$/ }
-   ]
-   ```
+   * ```typescript
+   * options: [
+   *   { flag: '-f, --file <name>', description: 'file name', fn: /\.zip$/ }
+   * ]
+   * ```
    */
   options?: ICommandOption[];
   /**
    * If true, allows any options/flags to pass through the parser. This is useful
-   * when command execution is delegated.
+   * when command execution is delegated to other APIs.
    */
-  allowUnknownOption?: boolean;
+  allowUnknown?: boolean;
   /**
    * Command should be hidden
    */
@@ -84,38 +80,36 @@ export interface Command {
 
 /**
  * Command Implementation class decorator
- * @param annotations decorator annotation object
- * @example
  *
- ```typescript
- @Command({
-   description: 'My super command',
-   args: [
-     { name: 'argone', optional: true }, // optional argument
-   ],
-   options: [
-     { flag: '-f, --file <name>', description: 'input file'}
-   ]
- })
- export class SuperCommand extends BaseCommand {
-   public async run(argone: string, options: {file?: string}): Promise<any> {
-     // ...
-   }
- }
- ```
+ * ```typescript
+ * @Command({
+ *   description: 'My super command',
+ *   args: [
+ *     { name: 'somearg', optional: true }, // optional argument
+ *   ],
+ *   options: [
+ *     { flag: '-f, --file <name>', description: 'input file'}
+ *   ]
+ * })
+ * export class MyCommand extends BaseCommand {
+ *   public async run(options: {file?: string}, somearg?: string) {
+ *     // ...
+ *   }
+ * }
+ * ```
+ * @param annotations decorator annotation object
  */
-export const Command = (annotations: Command): Function => { // decorator factory
+export function Command(annotations: ICommand): Function { // decorator factory
   return <T extends ICommandCtor<CommandImplementation>>(ctor: T) => { // class decorator
-    const { hidden, description, usage, args, options, allowUnknownOption } = annotations;
+    const { hidden, description, args, options, allowUnknown } = annotations;
     // extend the decorated class ctor
     class CommandImpl extends ctor {
       // use annotations to seed static properties for reading without initializing
       public static readonly hidden = hidden;
-      public static readonly usage = usage;
       public static readonly description = description;
       public static readonly args: ICommandArgument[] = args || [];
       public static readonly options: ICommandOption[] = options;
-      public static readonly allowUnknown: boolean = allowUnknownOption ? true : false;
+      public static readonly allowUnknown: boolean = null == allowUnknown ? false : true;
       /**
        * static getter for the (typed) constructor
        */
@@ -124,23 +118,8 @@ export const Command = (annotations: Command): Function => { // decorator factor
       }
 
       /**
-       * init program with this command
-       * @param program - command runner to which this is bound
-       */
-      public static init(adapter: CommandAdapter): void {
-        
-        // setup program
-        adapter
-          .description(this.description)
-          .arguments(this.args) // set argument syntax
-          .option(...(this.options || [])) // apply options
-          .allowUnknown(this.allowUnknown);
-
-      }
-
-      /**
-       * command specific help text emitter
-       * commands must write the text as well
+       * Command specific help text emitter.
+       * Implementations must write the text as well
        */
       public help(): void {
         return super.help && super.help();
@@ -153,17 +132,31 @@ export const Command = (annotations: Command): Function => { // decorator factor
 };
 
 /**
- * BaseCommand abstract which all implementations should extend.
+ * Command abstract which all implementations should extend.
+ * This allows the parser to detect Command implementations,
+ * and provides a layer of abstraction for `ui` and `logger` instantiation.
+ * 
+ * ```typescript
+ * @Command({
+ *   description: 'a useful command of some kind'
+ * })
+ * export MyCommand extends BaseCommand {
+ *  public async run(options: any) {
+ *     // ...
+ *   }
+ * }
+ * ```
  */
 export abstract class BaseCommand {
   // ivars
-  public logger = new Logger();
-  public ui = new UIWriter();
+  public logger = new Log.Logger();
+  public ui = new UI.Writer();
 
   /**
    * Command action runner.
-   * @param args - Command arguments where last representing the options object
+   * @param options Parsed options for the command invocation
+   * @param args Any arguments passed to the command
    */
-  public abstract async run(...args: any[]): Promise<any>;
+  public abstract async run(options: any, ...args: any[]): Promise<any>;
 
 }

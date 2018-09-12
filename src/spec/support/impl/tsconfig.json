@@ -4,5 +4,8 @@
     "baseUrl": ".",
     "noEmit": true,
     "experimentalDecorators": true,
+    "typeRoots": [
+      "../../../../node_modules/@types/"
+    ]
   }
 }
