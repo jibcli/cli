@@ -9,6 +9,7 @@ import { CONSTANTS } from '../constants';
 export namespace UI {
 
   export enum TAB {
+    ZERO = 0,
     ONE = 1,
     TWO,
     THREE,
@@ -36,7 +37,7 @@ export namespace UI {
     public outputLines(body: string | string[], tabs = TAB.TWO): Writer {
       return this.write(this._indentLines(body, tabs));
     }
-    
+
     /**
      * Output an aligned grid of the text matrix
      * @param table matrix of rows/cols
@@ -54,7 +55,7 @@ export namespace UI {
     public grid(table: (string | number)[][], spacing = TAB.TWO): string {
       let widths = this._colWidths(table);
       const rows = table.reduce((list: string[], row: string[]) => {
-        
+
         // determine the number of lines in this row
         const linesInRow = Math.max(...row
           .map(cell => this._lines(cell + '').length));
@@ -62,13 +63,13 @@ export namespace UI {
         // prefill a subgrid array
         const subgrid: string[][] = Array.apply(null, new Array(linesInRow))
           .map(() => new Array(widths.length));
-      
+
         // adjust cells in each row by the column width
         row.map(cell => cell + '') // to string
           .forEach((text: string, col: number) => {
             const w = widths[col];
             let lines = this._lines(text);
-            for (let i=0; i<subgrid.length; i++) {
+            for (let i = 0; i < subgrid.length; i++) {
               // create new cells for this line
               let cellText = (lines[i] || '').trim();
               let clean = cleanText(cellText);
@@ -87,7 +88,7 @@ export namespace UI {
 
     /**
      * determine col widths from a rows/colums in a table
-     * @param table 
+     * @param table a table structure with columns
      */
     private _colWidths(table: (string | number)[][]): number[] {
       let widths: number[] = [];

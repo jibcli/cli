@@ -6,6 +6,7 @@ export interface IHelloOptions {
 
 @Command({
   description: 'test hello command',
+  allowUnknown: true,
   options: [
     {flag: '-c, --casual', description: 'be casual'},
   ],
@@ -21,5 +22,9 @@ export class Hello extends BaseCommand {
     } else {
       this.ui.output(`Hello ${worlds.join('|')}!`);
     }
+  }
+
+  public help(): void {
+    this.ui.output('Custom command help');
   }
 }

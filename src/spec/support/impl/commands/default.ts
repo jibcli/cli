@@ -1,6 +1,6 @@
 import { Command, BaseCommand } from '../';
 
-export interface IDefaultOptions {
+interface IDefaultOptions {
   opt: boolean;
 }
 
@@ -14,7 +14,7 @@ export interface IDefaultOptions {
     {name: 'foo', optional: true},
   ],
 })
-export class DefaultCommand extends BaseCommand {
+class DefaultCommand extends BaseCommand {
   public async run(options: IDefaultOptions, foo: string) {
     this.ui.output(`Ran a single command`);
     this.ui.outputLines([
@@ -23,3 +23,5 @@ export class DefaultCommand extends BaseCommand {
     ]);
   }
 }
+// tests direct export
+export = DefaultCommand;

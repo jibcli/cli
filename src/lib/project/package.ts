@@ -24,7 +24,7 @@ export namespace Project {
 
   /**
    * resolve a file in the project workspace
-   * @param dir starting directory 
+   * @param dir starting directory
    * @param name file name to resolve
    * @param parent parent directory (of last call)
    */

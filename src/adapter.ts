@@ -4,7 +4,7 @@ import * as _CLI from 'commander';
  * Instance of command parser used to setup command syntax parsing
  */
 export interface IProgramCommand extends _CLI.Command {
-  
+
 }
 
 /**
@@ -25,17 +25,17 @@ export interface ICommandArgument {
 
 /**
  * Option flag syntax of the format `-{shorthand}, --{longhand} {[value]}`
- * 
+ *
  * - `-c, --cheese <type>` requires "type" in cheese option
  * - `-p, --project [path]` "path" is optional for the project option
  * - `-d, --debug` simple boolean option
  * - `--test` a longhand only flag
- * 
- * Short boolean flags may be passed as a single argument, such as `-abc`. 
+ *
+ * Short boolean flags may be passed as a single argument, such as `-abc`.
  * Multi-word arguments like `--with-token` become camelCase, as `options.withToken`.
  * Also note that multi-word arguments with `--no` prefix will result in `false` as
  * the option name value. So `--no-output` would parse as `options.output === false`.
- * 
+ *
  * Refer to [commander](https://www.npmjs.com/package/commander#option-parsing) for
  * more information
  */
@@ -69,11 +69,11 @@ export interface IAdapterOptionCallback<T> {
  */
 export class CommandAdapter {
 
+  public static readonly HELP_FLAG = '--help';
   private readonly _isRoot: boolean;
   private _subs = new Map<string, CommandAdapter>();
   private _hasOptions: boolean;
   private _argString: string;
-  public static readonly HELP_FLAG = '--help';
 
   /**
    * Create adapter instance for the given command
@@ -127,7 +127,7 @@ export class CommandAdapter {
   private _setUsage(): void {
     const usage = this._syntaxArgSplice;
     if (this._subs.size) {
-      const sub = this._isRoot ? '[command]': '<command>'
+      const sub = this._isRoot ? '[command]' : '<command>'
       usage.push(sub);
     }
     if (this._hasOptions) {
@@ -152,7 +152,7 @@ export class CommandAdapter {
    * Apply arguments as parse-able syntax to the command
    * @param args command argument(s) to apply
    */
-  public arguments(args?: ICommandArgument[]): CommandAdapter {
+  public arguments(...args: ICommandArgument[]): CommandAdapter {
     this._argString = this._argumentSyntax(args);
     this.cmd.arguments(this._argString);
     this._setUsage();
@@ -161,7 +161,7 @@ export class CommandAdapter {
 
   /**
    * Format args into a parse-able syntax string
-   * @param args 
+   * @param args arg list to derive syntax string
    */
   private _argumentSyntax(args?: ICommandArgument[]): string {
     return (args || []).map(arg => {
@@ -263,7 +263,7 @@ export class CommandAdapter {
   public invocation(handler: (options: any, ...args: any[]) => void): CommandAdapter {
     this.cmd.action((...invocation: any[]) => {
       // locate the invocation argument containing options
-      const optIdx = invocation.findIndex(v => typeof v === 'object' && Reflect.has(v, 'options')); 
+      const optIdx = invocation.findIndex(v => typeof v === 'object' && Reflect.has(v, 'options'));
       const opts = invocation.splice(optIdx, 1).shift();
       // normalize the args
       const syntaxLeads: string[] = this._syntaxArgSplice.slice(0, -1);

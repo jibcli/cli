@@ -33,25 +33,23 @@ describe('CLI', () => {
   });
 
   it('should throw on invalid project', () => {
-    const logspy = spyOn(Log.Logger.prototype, 'error');
-    const getBad = (): CLI => {
-      return new CLI({
-        baseDir: os.tmpdir()
-      });
-    };
-    expect(getBad).toThrow();
-    expect(logspy).toHaveBeenCalled();
+    const err = spyOn(Log.Logger.prototype, 'error');
+    expect(() => new CLI({ baseDir: os.tmpdir() })).toThrow();
+    expect(err).toHaveBeenCalled();
+  });
+
+  it('should throw on missing command dir', () => {
+    const err = spyOn(Log.Logger.prototype, 'error');
+    expect(() => new CLI({ baseDir: path.join(testImplDir, 'noop') })).toThrow();
+    expect(err).toHaveBeenCalled();
   });
 
   it('should throw on invalid delimiter', () => {
     const logspy = spyOn(Log.Logger.prototype, 'error');
-    const getBad = (): CLI => {
-      return new CLI({
-        baseDir: testImplDir,
-        commandDelim: '--'
-      });
-    };
-    expect(getBad).toThrow();
+    expect(() => new CLI({
+      baseDir: testImplDir,
+      commandDelim: '--'
+    })).toThrow();
     expect(logspy).toHaveBeenCalled();
   });
 
@@ -83,12 +81,21 @@ describe('CLI', () => {
         .then(done).catch(done.fail);
     });
 
-    it('should create help', done => {
-      testImpl(null, ['--help'])
-        .then(help => {
+    it('should show help', done => {
+      Promise.all([ testImpl(null), testImpl(null, ['--help'])] )
+        .then(helps => helps.forEach(help => {
           expect(help).toContain('test hello command', 'did not render command help');
           expect(help).toMatch(/other\:[\S\s]+additional/i, 'did not render global help');
-        })
+        }))
+        .then(done).catch(done.fail);
+    });
+
+    it('should handle unknown command', done => {
+      testImpl('typo')
+        .then(
+          out => Promise.reject('should have failed'),
+          err => expect(err).toBeDefined()
+        )
         .then(done).catch(done.fail);
     });
 
@@ -103,7 +110,7 @@ describe('CLI', () => {
           })
           .then(done).catch(done.fail);
       });
-      
+
       it('should run root command', done => {
         testImpl(null, null, { [TEST_CONFIG_ENV.root]: 'default' })
           .then(out => expect(out).toContain('Ran a single command'))
@@ -125,7 +132,11 @@ describe('CLI', () => {
 
       it('should get help', done => {
         testImpl('hello', ['-h'])
-          .then(help => expect(help).toContain('test hello command'))
+          .then(help => {
+            expect(help).toContain('test hello command', 'did not render command description');
+            expect(help).toContain('Custom command help', 'did not render custom help');
+            expect(help).toContain('-c, --casual', 'did not render command options');
+          })
           .then(done).catch(done.fail);
       });
 
@@ -211,7 +222,7 @@ describe('CLI', () => {
               .then(output => expect(output).toContain('Init web app', `Command was not run using delim '${delim}'`))
               .then(done).catch(done.fail);
           });
-          
+
         });
 
       });

@@ -48,7 +48,7 @@ describe('Package utilities', () => {
     mkEmptyFile(tests.mapFile);
     mkEmptyFile(tests.declarationFile);
     mkEmptyDir(tests.subdir);
-    
+
     // run assertions
     const list = Project.listRequirable(tmpdir);
     // files
@@ -59,6 +59,13 @@ describe('Package utilities', () => {
     expect(~list.indexOf(tests.dotDelimited)).not.toBeTruthy(`dot delimited filenames were not excluded`);
     // directory
     expect(~list.indexOf(tests.subdir)).toBeTruthy('a subdirectory was excluded');
+  });
+
+  it('should resolve a command directory', () => {
+    let testImplDir: string;
+    testImplDir = path.resolve(__dirname, '..', 'support', 'impl');
+
+    expect(Project._resolveCommandDir(testImplDir, 'commands')).toEqual('commands');
   });
 
 });

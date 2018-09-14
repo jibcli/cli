@@ -43,7 +43,7 @@ export namespace Log {
     public name: string;
 
     /**
-     * 
+     * Set a default level to be used by all logger instantantiations
      * @param level default level used for Logger instances
      */
     public static setDefaultLevel(level: LOG_LEVEL): void {
