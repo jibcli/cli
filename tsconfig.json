@@ -21,6 +21,6 @@
   "exclude": [
     "build",
     "node_modules",
-    "src/spec/support/impl",
+    "src/spec/support/impl"
   ]
 }

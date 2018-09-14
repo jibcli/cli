@@ -68,7 +68,7 @@ describe('UI features', () => {
     
     it('should format basic heading ', () => {
       const spy = spyOn(mockStream, 'write').and.callFake((str: string) => {
-        return isNotNewLine(str) && expect(str).toContain(`Heading:\n\n    body text`);
+        return isNotNewLine(str) && expect(str).toContain(`Heading:\n\n  body text`);
       });
       ui.outputSection('Heading', 'body text');
     });

@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { Program, IProgramOptions } from './program';
+import { Program, IProgramOptions, IProgramOptionCallback } from './program';
 import { BaseCommand, CommandImplementation, ICommandCtor, ICommandDefinition } from './command';
-import { Log, Project } from './lib';
-import { ICommandOption, IProgramOptionCallback } from './adapter';
+import { Log, Project, ChildPromise, CONSTANTS } from './lib';
+import { ICommandOption } from './adapter';
 
 /**
  * interface for fs scann result
@@ -18,7 +18,7 @@ interface IScanResult {
  * extension of main cli config with a working directory provided
  */
 export interface ICLIOptions extends IProgramOptions {
-  basedir?: string; // working directory from which commands are based
+  baseDir?: string; // working directory from which commands are based
 }
 
 export class CLI {
@@ -32,7 +32,7 @@ export class CLI {
    *
    * ```typescript
    * const cli = new CLI({
-   *   basedir: __dirname,
+   *   baseDir: __dirname,
    *   commandDir: './relative/path/to/my/command/impls',
    *   commandDelim: ':', // use colons instead of spaces to traverse command tree
    * });
@@ -42,24 +42,61 @@ export class CLI {
   constructor(private options?: ICLIOptions) {
     // construct options
     this.options = {
-      basedir: path.dirname(process.mainModule.filename), // location of file running the process
+      // location of file running the process
+      baseDir: path.dirname(Project.resolveFile(process.mainModule.filename, 'package.json') || ''),
       ...(options || {} as ICLIOptions),
     };
 
-    // deconstruct options into consituents
-    const { basedir, ...passthrough } = this.options;
-
     // instantiate main program
-    this.program = new Program(basedir, passthrough);
+    try {
+      this.program = this._initProgram();
+    } catch (e) {
+      this.logger.error(e);
+      throw e;
+    }
   }
 
   /**
-   * get the base command dir
+   * Resolve configurations and initialize the main program.
+   */
+  private _initProgram(): Program {
+    const { baseDir, ...programOpts } = this.options;
+
+    // resolve package.json
+    let pkgJson: any;
+    try {
+      pkgJson = Project.getPackageJson(baseDir);
+    } catch (e) {
+      throw new Error(`Invalid CLI project: '${baseDir}'`);
+    }
+    
+    // read config from pack json
+    const pkgJsonConfig = pkgJson[CONSTANTS.PKG_CONFIG_KEY] || {};
+    
+    // resolve command directory & update config
+    let commandDir = pkgJsonConfig.commandDir || CONSTANTS.COMMAND_DIRECTORY;
+    let resolvedDir = Project._resolveCommandDir(baseDir, commandDir);
+    this.options.commandDir = commandDir = resolvedDir;
+    if (!resolvedDir) {
+      throw new Error(`Unable to resolve command directory '${commandDir}' in '${baseDir}`);
+    }
+
+    // init program with full options
+    return new Program(baseDir, {
+      version: pkgJson.version, // default version from package.json
+      ...pkgJsonConfig, // add from package json
+      ...programOpts, // add the options manually provided as overrides
+      commandDir, // use resolved commandDirectory
+    });
+
+  }
+
+  /**
+   * get the absolute command dir
    */
   private get _commandRoot(): string {
-    const { basedir } = this.options;
-    const { commandDir } = this.program.config;
-    return path.join(basedir, commandDir);
+    const { baseDir, commandDir } = this.options;
+    return path.join(baseDir, commandDir);
   }
 
   /**
@@ -77,6 +114,7 @@ export class CLI {
     while (i--) {
       // find command at argument path
       const cmdFilePath = path.join(dir, ...args.slice(0, i + 1));
+      // this.logger.debug(`Attempt load ${cmdFilePath}`);
       let mod: any;
       try { // require() fails for nonsensical paths
         mod = require(cmdFilePath);
@@ -89,7 +127,7 @@ export class CLI {
           command = {
             ctor,
             name: cmdPath.join(commandDelim),
-            path: cmdPath,
+            tree: cmdPath,
             args: argsTail,
           };
           break;
@@ -103,11 +141,14 @@ export class CLI {
           // file does not exist, but directory does, so a command is synthesized
           // to register subcommand options
           const cmdPath = args.slice(0, i + 1);
+          // this.logger.debug(`Command directory: ${cmdPath.join(commandDelim)}`)
           command = {
             name: cmdPath.join(commandDelim),
-            path: cmdPath,
+            tree: cmdPath,
             subcommands: this._scanSubcommands(cmdFilePath, cmdPath),
           };
+
+          break;
         }
       }
     }
@@ -141,12 +182,12 @@ export class CLI {
       .map(({name, location, stats}) => {
         let def: ICommandDefinition = {
           name,
-          path: ancestry.slice().concat(name)
+          tree: ancestry.slice().concat(name)
         };
         if (stats.isFile()) {
           def.ctor = this._extractCommandCtor(require(location));
         } else {
-          def.subcommands = this._scanSubcommands(location, def.path);
+          def.subcommands = this._scanSubcommands(location, def.tree);
         }
         return def;
       });
@@ -219,18 +260,27 @@ export class CLI {
   private _normalizedArgs(args: string[]): string[] {
     const { commandDelim } = this.program.config;
     return args && args.length ? 
-      args[0].split(commandDelim).concat(args.slice(1)) :
-      args;
+      // reduce the args to a normalized array, without delimiters
+      args.reduce((result: {did?: boolean, list: string[]}, arg) => {
+        if (!result.did) {
+          const list = arg.split(commandDelim);
+          result.did = list.length > 1;
+          result.list.push(...list);
+        } else {
+          result.list.push(arg);
+        }
+        return result;
+      }, {list: []}).list : args;
   }
 
   /**
    * Add help text to the main program
-   * @param body Help text to show
    * @param heading Add ui heading
+   * @param body Help text to show
    * @param raw Flag to output the raw text without formatting
    */
-  public addGlobalHelp(body: string, heading?: string, raw?: boolean): CLI {
-    this.program.globalHelp(body, heading, raw);
+  public addGlobalHelp(heading: string, body?: string, raw?: boolean): CLI {
+    this.program.globalHelp(heading, body, raw);
     return this;
   }
 

@@ -34,7 +34,10 @@ export interface ICommandArgument {
  * Short boolean flags may be passed as a single argument, such as `-abc`. 
  * Multi-word arguments like `--with-token` become camelCase, as `options.withToken`.
  * Also note that multi-word arguments with `--no` prefix will result in `false` as
- * the option name value. So `--no-output` would parse as `options.output === false`
+ * the option name value. So `--no-output` would parse as `options.output === false`.
+ * 
+ * Refer to [commander](https://www.npmjs.com/package/commander#option-parsing) for
+ * more information
  */
 export type TOptionFlag = string;
 
@@ -55,8 +58,8 @@ export interface ICommandOption {
 /**
  * Callback for an option with value callback
  */
-export interface IProgramOptionCallback<T> {
-  (value: T): void
+export interface IAdapterOptionCallback<T> {
+  (value: T): void;
 }
 
 /**
@@ -67,7 +70,7 @@ export interface IProgramOptionCallback<T> {
 export class CommandAdapter {
 
   private readonly _isRoot: boolean;
-  private _hasSubcommand: boolean;
+  private _subs = new Map<string, CommandAdapter>();
   private _hasOptions: boolean;
   private _argString: string;
   public static readonly HELP_FLAG = '--help';
@@ -109,9 +112,11 @@ export class CommandAdapter {
    * @param desc command description
    */
   public subcommand(syntax: string, desc?: string): CommandAdapter {
-    this._hasSubcommand = true;
-    const childSyntax = [this.syntax, syntax].filter(p => !!p).join('');
-    const adapter = new CommandAdapter(this.cmd.command(childSyntax, desc), childSyntax);
+    // this._hasSubcommand = true;
+    // const childSyntax = [this.syntax, syntax].filter(p => !!p).join('');;
+    // const adapter = new CommandAdapter(this.cmd.command(childSyntax, desc), childSyntax);
+    const adapter = new CommandAdapter(this.cmd.command(syntax, desc), syntax);
+    this._subs.set(syntax, adapter);
     this._setUsage();
     return adapter;
   }
@@ -120,9 +125,10 @@ export class CommandAdapter {
    * update usage information from ivars
    */
   private _setUsage(): void {
-    const usage = [];
-    if (this._hasSubcommand) {
-      usage.push(this._isRoot ? '[command]': '<subcommand>');
+    const usage = this._syntaxArgSplice;
+    if (this._subs.size) {
+      const sub = this._isRoot ? '[command]': '<command>'
+      usage.push(sub);
     }
     if (this._hasOptions) {
       usage.push('[options]');
@@ -162,6 +168,14 @@ export class CommandAdapter {
       const spread = arg.multi ? '...' : '';
       return arg.optional ? `[${arg.name}${spread}]` : `<${arg.name}${spread}>`
     }).join(' ');
+  }
+
+  /**
+   * Get splice of syntax where parts may be misconstrued as
+   * parsed arguments
+   */
+  private get _syntaxArgSplice(): string[] {
+    return (this.syntax || '').split(' ').slice(1);
   }
 
   /**
@@ -205,7 +219,7 @@ export class CommandAdapter {
    * @param name the option (long) name
    * @param cb value callback when option is parsed
    */
-  public onOption<T>(name: string, cb: IProgramOptionCallback<T>): CommandAdapter {
+  public onOption<T>(name: string, cb: IAdapterOptionCallback<T>): CommandAdapter {
     return this.on(`option:${name}`, cb);
   }
 
@@ -248,12 +262,14 @@ export class CommandAdapter {
    */
   public invocation(handler: (options: any, ...args: any[]) => void): CommandAdapter {
     this.cmd.action((...invocation: any[]) => {
-      // console.log('OVERRIDE', this.syntax, {invocation});
       // locate the invocation argument containing options
-      // commander _usually_ has options last, but not always
       const optIdx = invocation.findIndex(v => typeof v === 'object' && Reflect.has(v, 'options')); 
       const opts = invocation.splice(optIdx, 1).shift();
-      handler(opts, ...invocation);
+      // normalize the args
+      const syntaxLeads: string[] = this._syntaxArgSplice.slice(0, -1);
+      const args = invocation.slice(syntaxLeads.length);
+      // console.log('OVERRIDE', this.syntax, {opts, invocation, syntaxLeads, args});
+      handler(opts, ...args);
     });
     return this;
   }

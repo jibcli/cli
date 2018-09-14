@@ -9,7 +9,8 @@
     "build:watch": "npm run build -- -w",
     "docs": "rm -rf ./docs && typedoc --options ./typedoc.js --exclude '**/*+(spec|templates|node_modules)/**' --out ./docs ./src",
     "prebuild": "rm -rf build",
-    "test": "nyc jasmine --config=src/spec/support/jasmine.json"
+    "test": "nyc jasmine --config=src/spec/support/jasmine.json",
+    "posttest": "nyc check-coverage --lines 90 --functions 90 --branches 90"
   },
   "author": "Matt Vander Vliet",
   "license": "MIT",

@@ -21,7 +21,7 @@ export interface ICommandCtor<T extends BaseCommand> {
  */
 export interface ICommandDefinition {
   name: string;
-  path: string[];
+  tree: string[];
   args?: string[];
   ctor?: ICommandCtor<CommandImplementation>;
   subcommands?: ICommandDefinition[];

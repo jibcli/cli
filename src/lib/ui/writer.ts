@@ -25,7 +25,7 @@ export namespace UI {
      * @param body section text
      */
     public outputSection(heading: string, body: string | string[]): Writer {
-      return this.write(`\n${this._indent(TAB.ONE)}${heading}:\n\n${this._indentLines(body, TAB.TWO)}`)
+      return this.write(`\n${heading}:\n\n${this._indentLines(body, TAB.ONE)}`)
     }
 
     /**

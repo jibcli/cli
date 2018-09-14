@@ -1,12 +1,21 @@
 import { ICommandCtor, CommandImplementation, ICommandDefinition } from './command';
 import { Project, CONSTANTS, UI, Log } from './lib';
-import { CommandAdapter, ICommandOption, IProgramOptionCallback } from './adapter';
+import { CommandAdapter, ICommandOption, IAdapterOptionCallback } from './adapter';
 import { IProjectConfig } from './project';
+
+/**
+ * Callback for an option with value callback
+ */
+export interface IProgramOptionCallback<T> extends IAdapterOptionCallback<T> {
+  (value: T, helper: {ui: UI.Writer; logger: Log.Logger;}): void
+}
 
 /**
  * extend package config
  */
-export interface IProgramOptions extends IProjectConfig { }
+export interface IProgramOptions extends IProjectConfig {
+  version?: string,
+}
 
 /**
  * Main program registry
@@ -14,32 +23,21 @@ export interface IProgramOptions extends IProjectConfig { }
 export class Program {
   // define ivars
   public root: CommandAdapter;
-  public version: string;
   private _ui = new UI.Writer();
   private _logger = new Log.Logger();
 
-  constructor(dir: string, private options?: IProgramOptions) {
-    // load package json for the CLI package
-    let pkgJson: any;
-    try {
-      pkgJson = Project.getPackageJson(dir);
-      this.version = pkgJson.version;
-    } catch (e) {
-      throw new Error(`Cannot read project ${dir}`);
-    }
-
-    this.options = {
-      ...(pkgJson[CONSTANTS.PKG_CONFIG_KEY] || {}), // add from package json
-      ...(options || {}), // allow explicit config defs as well
-    };
+  constructor(public readonly cwd: string, private readonly options: IProgramOptions = {}) {
     // ensure required configs
     this.options.commandDelim = this.options.commandDelim || CONSTANTS.COMMAND_DELIMITER;
-    this.options.commandDir = this.options.commandDir || CONSTANTS.COMMAND_DIRECTORY;
+
+    // validate delimiter
+    if (this.options.commandDelim.length !== 1) {
+      throw new Error(`Invalid delimiter '${this.options.commandDelim}'. Must have length == 1`);
+    }
 
     // create main cli
     this.root = new CommandAdapter()
-      .version(this.version, '-v, --version'); // set default version option
-
+      .version(this.options.version, '-v, --version'); // set default version option
   }
 
   /**
@@ -65,6 +63,7 @@ export class Program {
    * @param ctor the command implementation constructor
    */
   public registerCommandHelp(syntax: string, ctor?: ICommandCtor<CommandImplementation>, subcommands?: ICommandDefinition[]): CommandAdapter {
+    // this._logger.debug(`Registering help with syntax '${syntax}'`);
     return !(ctor && ctor.hidden) ? this.registerCommand(syntax, ctor, subcommands) : null;
   }
 
@@ -85,6 +84,7 @@ export class Program {
    * @param subcommands Subcommands of the parent. If zero-length array, it is assumed subcommands exist so '<subcommand>' will be used
    */
   public registerCommand(syntax: string, ctor?: ICommandCtor<CommandImplementation>, subcommands?: ICommandDefinition[]): CommandAdapter {
+    // this._logger.debug(`Registering command with syntax '${syntax}'`);
     const { commandDelim } = this.config;
 
     // create new child adapter
@@ -95,15 +95,20 @@ export class Program {
       this._applyCommandMeta(child, ctor);
 
     } else if (subcommands) {
+      // child = this._command(`${syntax}${commandDelim}<subcommand>`);
       if (subcommands.length) {
-        child = this._command(syntax); // create new command
+        child = this._command(syntax);
         // subcommands exist, so we can register them with the adapter
-        subcommands.forEach(sub => {
-          child.subcommand(`${commandDelim}${sub.name}`, sub.ctor ? sub.ctor.description : null);
+        subcommands.forEach((sub: ICommandDefinition) => {
+          // child.subcommand(`${commandDelim}${sub.name}`, sub.ctor ? sub.ctor.description : null);
+          // this._logger.debug(`Registering subcommand '${sub.name}'`);
+          child.subcommand(sub.name, sub.ctor ? sub.ctor.description : '...');
         });
       } else {
         // subcommands stubbed only
-        child = this._command(`${syntax}${commandDelim}<subcommand>`); // create new command
+        // note that the syntax must be separated from the subcommand
+        // child = this._command(`${syntax} <subcommand>`);
+        child = this._command(`${syntax}${commandDelim}<subcommand>`);
       }
     }
 
@@ -137,21 +142,20 @@ export class Program {
     let instance: CommandImplementation;
 
     // assign action while slicing non-interpreted args from command path
-    adapter.invocation((options: any, ...cmdArgs: any[]) => {
-      // normalize actual arguments based on command syntax (space-delims become args)
-      const args: any[] = adapter.syntax ? cmdArgs.slice(adapter.syntax.split(' ').length - 1) : cmdArgs;
+    adapter.invocation((options: any, ...args: any[]) => {
+      // instantiate and call
       instance = ctor && new ctor();
       return instance && instance.run.call(instance, options, ...args)
         .catch((e: any) => this._logger.error(e));
 
     }).onHelp(() => {
       instance = ctor && new ctor();
-      if (subcommands && subcommands.length) {
-        // print subcommands in an aligned grid format
-        this._ui.outputSection('Subcommands', this._ui.grid(subcommands.map(item => {
-          return [item.name, item.ctor ? item.ctor.description : ''];
-        })));
-      }
+      // if (subcommands && subcommands.length) {
+      //   // print subcommands in an aligned grid format
+      //   this._ui.outputSection('Subcommands', this._ui.grid(subcommands.map(item => {
+      //     return [item.name, item.ctor ? item.ctor.description : ''];
+      //   })));
+      // }
       return instance && instance.help();
     });
   }
@@ -169,7 +173,12 @@ export class Program {
       const flag = option.flag.match(/-+([\w-]+)$/);
       if (flag) {
         const name: string = flag[1];
-        this.root.onOption(name, cb);
+        this.root.onOption<T>(name, val => {
+          cb(val, {
+            ui: this._ui,
+            logger: this._logger,
+          });
+        });
       } else {
         throw new Error(`Cannot determine option name from flag: ${option.flag}`);
       }
@@ -179,19 +188,21 @@ export class Program {
 
   /**
    * Add help text to the main program
-   * @param body Help text to show
    * @param heading Add ui heading
+   * @param body Help text to show
    * @param raw Flag to output the raw text without formatting
    */
-  public globalHelp(body: string, heading?: string, raw?: boolean): Program {
+  public globalHelp(heading: string, body?: string, raw?: boolean): Program {
     this.root.onHelp(() => {
       if (raw) {
-        this._ui.output(body);
-      } else  if (heading) {
+        [heading, body]
+          .filter(t => !!t)
+          .forEach(t => this._ui.output(t));
+      } else if (heading && body) {
         this._ui.outputSection(heading, body);
       } else {
         this._ui.output();
-        this._ui.outputLines(body, 1);
+        this._ui.outputLines(heading || body, 1);
       }
     });
     return this;

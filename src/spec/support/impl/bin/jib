@@ -1,0 +1,27 @@
+#! /usr/bin/env node
+
+// ################################
+// For unit tests in parser.spec.ts
+// ################################
+
+const { CLI, Log } = require('../');
+
+// configure logging
+// Log.Logger.setDefaultLevel(Log.LOG_LEVEL.DEBUG);
+
+// parser is env-based, to allow different test scenarios
+const parser = new CLI({
+  rootCommand: process.env.JIB_TEST_ROOT_COMMAND,
+  commandDir: process.env.JIB_TEST_COMMAND_DIR || 'build/commands', // tests the "compiled output" dir by default
+  commandDelim: process.env.JIB_TEST_COMMAND_DELIM, // tests different command delimiters
+});
+
+// add a global option
+parser.addGlobalOption({ flag: '-i, --info', description: 'Show global information'}, (info, helper) => {
+  helper.ui.write('Got info option');
+});
+
+// add global help
+parser.addGlobalHelp(`Other`, `Additional information about the program...`);
+
+parser.parse(process.argv);
