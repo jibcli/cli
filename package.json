@@ -7,22 +7,27 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "npm run build -- -w",
+    "docs": "rm -rf ./docs && typedoc --options ./typedoc.js --exclude '**/*+(spec|templates|node_modules)/**' --out ./docs ./src",
     "prebuild": "rm -rf build",
-    "test": "nyc jasmine --config=src/spec/support/jasmine.json"
+    "test": "nyc jasmine --config=src/spec/support/jasmine.json",
+    "posttest": "nyc check-coverage --lines 90 --functions 90 --branches 90"
   },
-  "author": "Matt Vander Vliet <matt@mtnvanman.com>",
+  "author": "Matt Vander Vliet",
   "license": "MIT",
   "dependencies": {
     "chalk": "^2.4.1",
     "commander": "^2.17.1"
   },
   "devDependencies": {
+    "@types/fs-extra": "^5.0.4",
     "@types/jasmine": "^2.8.8",
     "@types/node": "^10.9.1",
+    "fs-extra": "^7.0.0",
     "jasmine": "^3.2.0",
     "jasmine-spec-reporter": "^4.2.1",
     "nyc": "^12.0.2",
     "ts-node": "^7.0.1",
+    "typedoc": "^0.12.0",
     "typescript": "^3.0.1"
   }
 }

@@ -1,4 +1,5 @@
 node_modules
 build
+docs
 reports
 .nyc_output

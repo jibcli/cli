@@ -1,0 +1,15 @@
+import { Command, BaseCommand } from '@jib/cli';
+
+@Command({
+  description: 'Init project foobar',
+  args: [
+    {name: 'baz'},
+    {name: 'bah', optional: true},
+  ]
+})
+export class FooBar extends BaseCommand {
+
+  public async run(options: any, ...args: any[]) {
+    this.ui.output('args:', ...args);
+  }
+}
