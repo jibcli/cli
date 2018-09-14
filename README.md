@@ -103,7 +103,7 @@ Generally it's a good idea to ensure this file has executable permissions
 | Option | Description | Default | Required |
 |--|--|--|--|
 | `baseDir` | Used to specify an alternate project directory. ⚠️  _Unlikely to be necessary - approach with caution_ | `'.'` | |
-| `commandDelim` | Use a custom delimiter for subcommands. Must have `length === 1` | `" "` | |
+| `commandDelim` | Use a custom delimiter for subcommands. Must have `length === 1` | `' '` | |
 | `commandDir` | Directory where command implementations are stored. This should be the _transpiled_ output directory, such as `"build/commands"` | `null` | ✅  |
 | `rootCommand` | Run a single command implementation when arguments don't resolve as subcommands. For example, create a `main.ts` implementation and specify `rootCommand: "main"` | `null` | |
 
