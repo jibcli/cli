@@ -33,7 +33,7 @@ export class OutputStream {
 
   /**
    * write messages and close the stream
-   * @param msgs 
+   * @param msgs end stream with messages
    */
   public end(...msgs: any[]): this {
     this.write(...msgs);

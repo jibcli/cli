@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Program, IProgramOptions, IProgramOptionCallback } from './program';
 import { BaseCommand, CommandImplementation, ICommandCtor, ICommandDefinition } from './command';
-import { Log, Project, ChildPromise, CONSTANTS } from './lib';
+import { Log, Project, CONSTANTS } from './lib';
 import { ICommandOption } from './adapter';
 
 /**
@@ -69,10 +69,10 @@ export class CLI {
     } catch (e) {
       throw new Error(`Invalid CLI project: '${baseDir}'`);
     }
-    
+
     // read config from pack json
     const pkgJsonConfig = pkgJson[CONSTANTS.PKG_CONFIG_KEY] || {};
-    
+
     // resolve command directory & update config
     let commandDir = pkgJsonConfig.commandDir || CONSTANTS.COMMAND_DIRECTORY;
     let resolvedDir = Project._resolveCommandDir(baseDir, commandDir);
@@ -82,7 +82,7 @@ export class CLI {
     }
 
     // init program with full options
-    return new Program(baseDir, {
+    return new Program({
       version: pkgJson.version, // default version from package.json
       ...pkgJsonConfig, // add from package json
       ...programOpts, // add the options manually provided as overrides
@@ -259,7 +259,7 @@ export class CLI {
    */
   private _normalizedArgs(args: string[]): string[] {
     const { commandDelim } = this.program.config;
-    return args && args.length ? 
+    return args && args.length ?
       // reduce the args to a normalized array, without delimiters
       args.reduce((result: {did?: boolean, list: string[]}, arg) => {
         if (!result.did) {
@@ -297,10 +297,10 @@ export class CLI {
   /**
    * Main execution method.
    * Parse arguments from the command line and run the program.
-   * 
+   *
    * ```typescript
    * import { CLI } from '@jib/cli';
-   * 
+   *
    * const parser = new CLI({
    *   // options
    * });
@@ -311,7 +311,7 @@ export class CLI {
   public parse(argv: string[]): void {
     // normalize arguments to parse
     const args = this._normalizedArgs(argv.slice(2));
-    
+
     // placeholder for module resolution
     let commandModule: ICommandDefinition;
 
@@ -345,11 +345,15 @@ export class CLI {
         this.program.exec(argv);
       } else {
         // arguments could not resolve a command, so proceed with help
-        this._initHelpFromPath(this._commandRoot).help();
+        this._initHelpFromPath(this._commandRoot);
         // since args were passed, yet the command could not resolve, it's an error
         if (args.length) {
-          this.logger.error(`Command '${this.logger.color.bold(args[0])}' was not found`);
+          // TODO: should stderr
+          this.logger.error(`Command '${args[0]}' was not found`);
+          this.help();
           process.exit(1);
+        } else {
+          this.help();
         }
       }
 

@@ -27,14 +27,6 @@ export interface ICommandDefinition {
   subcommands?: ICommandDefinition[];
 }
 
-/**
- * Interface to denote an implementation of required abstract
- * methods in BaseCommand
- */
-export interface CommandImplementation extends BaseCommand {
-  help?(): void;
-  run(options: any, ...args: any[]): Promise<any>;
-}
 
 /**
  * Annotations object for the Command implementation decorator
@@ -108,14 +100,10 @@ export function Command(annotations: ICommand): Function { // decorator factory
       public static readonly hidden = hidden;
       public static readonly description = description;
       public static readonly args: ICommandArgument[] = args || [];
-      public static readonly options: ICommandOption[] = options;
+      public static readonly options: ICommandOption[] = options || [];
       public static readonly allowUnknown: boolean = null == allowUnknown ? false : true;
-      /**
-       * static getter for the (typed) constructor
-       */
-      public static get ctor(): ICommandCtor<CommandImplementation> {
-        return <ICommandCtor<CommandImplementation>>this;
-      }
+      // set ivars for use upstream
+      protected readonly _name = ctor.name;
 
       /**
        * Command specific help text emitter.
@@ -135,7 +123,7 @@ export function Command(annotations: ICommand): Function { // decorator factory
  * Command abstract which all implementations should extend.
  * This allows the parser to detect Command implementations,
  * and provides a layer of abstraction for `ui` and `logger` instantiation.
- * 
+ *
  * ```typescript
  * @Command({
  *   description: 'a useful command of some kind'
@@ -148,8 +136,10 @@ export function Command(annotations: ICommand): Function { // decorator factory
  * ```
  */
 export abstract class BaseCommand {
+  // representation of the class implementation name
+  protected readonly _name: string;
   // ivars
-  public logger = new Log.Logger();
+  public logger = new Log.Logger({name: this._name});
   public ui = new UI.Writer();
 
   /**
@@ -159,4 +149,13 @@ export abstract class BaseCommand {
    */
   public abstract async run(options: any, ...args: any[]): Promise<any>;
 
+}
+
+/**
+ * Interface to denote an implementation of required abstract
+ * methods in BaseCommand
+ */
+export interface CommandImplementation extends BaseCommand {
+  help?(): void;
+  run(options: any, ...args: any[]): Promise<any>;
 }

@@ -259,9 +259,11 @@ so went back to plain 'ol JavaScript
 - [ ] Add `Dockerfile` to cli implementations for docker-based execution
 - [ ] Add built-in support for `stdin` pipes
 - [ ] Add support for custom text additions on `-v|--version` (copyright, foo, etc.)
+- [ ] Add support for command mispellings
 - [ ] Add support for command aliases
 - [ ] Add support for plugins
-  - [ ] Yeoman generator framework `@jib/yeoman`
+  - [ ] Yeoman generator framework `@jib/cli-gen`
+  - [ ] Prompting `@jib/cli-prompt`
   - [ ] UI spinner `@jib/cli-spinner`
   - [ ] UI table `@jib/cli-table`
   - [ ] UI image rendering `@jib/cli-image`

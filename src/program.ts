@@ -7,7 +7,7 @@ import { IProjectConfig } from './project';
  * Callback for an option with value callback
  */
 export interface IProgramOptionCallback<T> extends IAdapterOptionCallback<T> {
-  (value: T, helper: {ui: UI.Writer; logger: Log.Logger;}): void
+  (value: T, helper: { ui: UI.Writer; logger: Log.Logger; }): void;
 }
 
 /**
@@ -26,7 +26,7 @@ export class Program {
   private _ui = new UI.Writer();
   private _logger = new Log.Logger();
 
-  constructor(public readonly cwd: string, private readonly options: IProgramOptions = {}) {
+  constructor(private readonly options: IProgramOptions = {}) {
     // ensure required configs
     this.options.commandDelim = this.options.commandDelim || CONSTANTS.COMMAND_DELIMITER;
 
@@ -35,16 +35,13 @@ export class Program {
       throw new Error(`Invalid delimiter '${this.options.commandDelim}'. Must have length == 1`);
     }
 
-    // create main cli
-    this.root = new CommandAdapter()
-      .version(this.options.version, '-v, --version'); // set default version option
+    // create main cli adapter
+    this.root = this._initAdapter();
   }
 
-  /**
-   * getter for the resolved configuration
-   */
-  public get config(): IProgramOptions {
-    return this.options;
+  private _initAdapter(): CommandAdapter {
+    return new CommandAdapter()
+      .version(this.options.version, '-v, --version'); // set default version option
   }
 
   /**
@@ -58,11 +55,21 @@ export class Program {
   }
 
   /**
+   * getter for the resolved configuration
+   */
+  public get config(): IProgramOptions {
+    return this.options;
+  }
+
+  /**
    * Register a command for help context
    * @param syntax the command name (syntax) to be registered
    * @param ctor the command implementation constructor
    */
-  public registerCommandHelp(syntax: string, ctor?: ICommandCtor<CommandImplementation>, subcommands?: ICommandDefinition[]): CommandAdapter {
+  public registerCommandHelp(
+    syntax: string,
+    ctor?: ICommandCtor<CommandImplementation>,
+    subcommands?: ICommandDefinition[]): CommandAdapter {
     // this._logger.debug(`Registering help with syntax '${syntax}'`);
     return !(ctor && ctor.hidden) ? this.registerCommand(syntax, ctor, subcommands) : null;
   }
@@ -120,13 +127,13 @@ export class Program {
 
   /**
    * Apply command constructor annotation metadata to the adapter implementation
-   * @param adapter 
-   * @param ctor 
+   * @param adapter adapter to which command is bound
+   * @param ctor command constructor
    */
   private _applyCommandMeta(adapter: CommandAdapter, ctor: ICommandCtor<CommandImplementation>): CommandAdapter {
     adapter.description(ctor.description)
-      .arguments(ctor.args) // set argument syntax
-      .option(...(ctor.options || [])) // apply options
+      .arguments(...ctor.args) // set argument syntax
+      .option(...ctor.options) // apply options
       .allowUnknown(ctor.allowUnknown);
     return adapter;
   }

@@ -28,9 +28,7 @@ export class ChildPromise {
   public static spawn(command: string, args?: string[], options?: IChildSpawnOptions): Promise<string> {
     return this._child('spawn', command, args, options);
   }
-  public static fork(command: string, args?: string[], options?: child_process.ExecOptions): Promise<string> {
-    return this._child('fork', command, args, options);
-  }
+
   public static exec(command: string, options?: child_process.ExecOptions): Promise<string> {
     return new Promise((resolve, reject) => {
       const cb = (err: child_process.ExecException, stdout: string, stderr: string) => {
