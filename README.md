@@ -3,6 +3,11 @@
 This project is meant to serve as a lightweight, reusable, TypeScript first
 CLI framework for projects with any level of CLI command functionality.
 
+[![npm version](https://badge.fury.io/js/%40jib%2Fcli.svg)](https://badge.fury.io/js/%40jib%2Fcli)
+[![wercker status](https://app.wercker.com/status/48e1985c80eb231eac66d00acb0f34e8/s/master "wercker status")](https://app.wercker.com/project/byKey/48e1985c80eb231eac66d00acb0f34e8)
+[![GitHub license](https://img.shields.io/github/license/mvandervliet/jib-cli.svg)](https://github.com/mvandervliet/jib-cli/blob/master/LICENSE)
+[![codecov](https://codecov.io/gh/mvandervliet/jib-cli/branch/master/graph/badge.svg)](https://codecov.io/gh/mvandervliet/jib-cli)
+
 ## Why `'jib'`
 
 OK, so there's actually _some_ method to the madness... The `@jib/cli` is
@@ -245,10 +250,9 @@ then its value will be the final argument, and of type `string[]`.
 
 ## TypeScript
 
-I was a JavaScript developer, then learned TypeScript but hated static typing,
-so went back to plain 'ol JavaScript
-
-> ... said no one ever
+This package is designed to embody the many benefits of using TypeScript, and
+recommends that users do the same. While vanilla JS is _technically_ possible,
+it is not supported at this time.
 
 ## TODOs
 

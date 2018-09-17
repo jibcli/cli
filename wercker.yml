@@ -20,6 +20,14 @@ test:
     # test
     - npm-test
 
+report: 
+  steps:
+    # update reports
+    - script:
+        name: Update reports
+        code: |
+          npm run test:report
+
 prepublish:
   steps:
     # run lint and test packaging
