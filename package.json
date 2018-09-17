@@ -1,7 +1,7 @@
 {
   "name": "@jib/cli",
   "version": "0.0.1",
-  "description": "All inclusive CLI development framework",
+  "description": "All-inclusive CLI development framework",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
@@ -11,10 +11,21 @@
     "lint": "tslint -p .",
     "test": "nyc jasmine --config=src/spec/support/jasmine.json",
     "posttest": "nyc check-coverage --lines 90 --functions 90 --branches 90",
+    "test:report": "nyc report --reporter=json && codecov -f reports/coverage/*.json",
     "prebuild": "rm -rf build",
     "prepack": "npm run build"
   },
   "author": "Matt Vander Vliet",
+  "homepage": "https://github.com/mvandervliet/jib-cli",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mvandervliet/jib-cli"
+  },
+  "keywords": [
+    "cli",
+    "typescript",
+    "command"
+  ],
   "license": "MIT",
   "dependencies": {
     "chalk": "^2.4.1",
@@ -24,6 +35,7 @@
     "@types/fs-extra": "^5.0.4",
     "@types/jasmine": "^2.8.8",
     "@types/node": "^10.9.1",
+    "codecov": "^3.1.0",
     "fs-extra": "^7.0.0",
     "jasmine": "^3.2.0",
     "jasmine-spec-reporter": "^4.2.1",
