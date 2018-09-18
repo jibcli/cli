@@ -1,13 +1,13 @@
-import { inspect } from 'util';
-import { Writable } from 'stream';
 import chalk from 'chalk';
+import { Writable } from 'stream';
+import { inspect } from 'util';
 
 type TOutputMessage = string | object | Error;
 
 export type TOutputWritable = Writable;
 
 export interface IOutputStreamOptions {
-  stream?: TOutputWritable,
+  stream?: TOutputWritable;
 }
 
 export class OutputStream {
@@ -17,7 +17,7 @@ export class OutputStream {
   constructor(protected _options: IOutputStreamOptions = {}) {
     this._options = {
       stream: process.stdout as TOutputWritable, // default
-      ..._options
+      ..._options,
     };
   }
 
@@ -26,7 +26,7 @@ export class OutputStream {
    * @param msgs messages to write
    */
   public write(...msgs: any[]): this {
-    msgs.forEach((msg, i) => this.stream.write(`${i ? ' ' : ''}${this._format(msg)}`))
+    msgs.forEach((msg, i) => this.stream.write(`${i ? ' ' : ''}${this._format(msg)}`));
     this.stream.write(`\n`);
     return this;
   }
@@ -39,6 +39,21 @@ export class OutputStream {
     this.write(...msgs);
     this.stream.end();
     return this;
+  }
+
+  /**
+   * Print messages to the ui stream
+   * @param msg messages to print
+   */
+  public output(...msg: any[]): this {
+    return this.write(...msg);
+  }
+
+  /**
+   * getter for the output stream
+   */
+  public get stream(): TOutputWritable {
+    return this._options.stream;
   }
 
   /**
@@ -56,21 +71,6 @@ export class OutputStream {
       }
     }
     return msg;
-  }
-
-  /**
-   * Print messages to the ui stream
-   * @param msg messages to print
-   */
-  public output(...msg: any[]): this {
-    return this.write(...msg);
-  }
-
-  /**
-   * getter for the output stream
-   */
-  public get stream(): TOutputWritable {
-    return this._options.stream;
   }
 
 }

@@ -1,8 +1,8 @@
+import chalk from 'chalk';
 import * as os from 'os';
 import * as path from 'path';
 import { CLI, ICLIOptions, Log } from '../../';
-import { CONSTANTS, ChildPromise } from '../../lib';
-import chalk from 'chalk';
+import { ChildPromise, CONSTANTS } from '../../lib';
 
 describe('CLI', () => {
   let testImplDir: string;
@@ -48,7 +48,7 @@ describe('CLI', () => {
     const logspy = spyOn(Log.Logger.prototype, 'error');
     expect(() => new CLI({
       baseDir: testImplDir,
-      commandDelim: '--'
+      commandDelim: '--',
     })).toThrow();
     expect(logspy).toHaveBeenCalled();
   });
@@ -94,9 +94,30 @@ describe('CLI', () => {
       testImpl('typo')
         .then(
           out => Promise.reject('should have failed'),
-          err => expect(err).toBeDefined()
+          err => expect(err).toBeDefined(),
         )
         .then(done).catch(done.fail);
+    });
+
+    describe('Command errors', () => {
+
+      it('should handle command errors as promise rejection', done => {
+        testImpl('throw')
+          .then(
+            out => Promise.reject('should have failed'),
+            err => expect(err).toBeDefined(),
+          )
+          .then(done).catch(done.fail);
+      });
+
+      it('should handle command errors when error thrown', done => {
+        testImpl('throw', ['--throw'])
+          .then(
+            out => Promise.reject('should have failed'),
+            err => expect(err).toBeDefined(),
+          )
+          .then(done).catch(done.fail);
+      });
     });
 
     describe(`Root (single) command`, () => {
@@ -190,7 +211,7 @@ describe('CLI', () => {
             subs.forEach((sub, i) => {
               expect(tests[i]).toMatch(
                 new RegExp(`usage:\\s+project\\s${sub}`, 'i'),
-                `did not show subcommand help '${sub}'`
+                `did not show subcommand help '${sub}'`,
               );
               // case where sub has subs
               if (sub === 'init') {
