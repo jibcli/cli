@@ -23,7 +23,7 @@ describe('ChildPromise', () => {
 
   it('should handle exec child process failure', done => {
     ChildPromise.exec('_DNE_')
-      .then(() => Promise.reject('should not have resolved'), () => {})
+      .then(() => Promise.reject('should not have resolved'), () => { })
       .then(done).catch(done.fail);
   });
 

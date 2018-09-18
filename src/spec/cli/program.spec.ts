@@ -1,4 +1,4 @@
-import { Program, IProgramOptionCallback } from '../../';
+import { IProgramOptionCallback, Program } from '../../';
 import { CONSTANTS } from '../../lib';
 
 describe('Program', () => {
@@ -12,13 +12,13 @@ describe('Program', () => {
 
   it('should throw on invalid delimiter', () => {
     expect(() => new Program({
-      commandDelim: '::'
+      commandDelim: '::',
     })).toThrow();
   });
 
   it('should support global options', () => {
     const program = new Program();
-    let stub = { onOpt: null as IProgramOptionCallback<any> };
+    const stub = { onOpt: null as IProgramOptionCallback<any> };
     spyOn(stub, 'onOpt'); // callback for option parsed
     spyOn(program.root, 'onOption') // stub option received
       .and.callFake((name: string, cb: (val: any) => void) => cb(true));

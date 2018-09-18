@@ -4,9 +4,9 @@ This project is meant to serve as a lightweight, reusable, TypeScript first
 CLI framework for projects with any level of CLI command functionality.
 
 [![npm version](https://badge.fury.io/js/%40jib%2Fcli.svg)](https://badge.fury.io/js/%40jib%2Fcli)
-[![wercker status](https://app.wercker.com/status/48e1985c80eb231eac66d00acb0f34e8/s/master "wercker status")](https://app.wercker.com/project/byKey/48e1985c80eb231eac66d00acb0f34e8)
-[![GitHub license](https://img.shields.io/github/license/mvandervliet/jib-cli.svg)](https://github.com/mvandervliet/jib-cli/blob/master/LICENSE)
-[![codecov](https://codecov.io/gh/mvandervliet/jib-cli/branch/master/graph/badge.svg)](https://codecov.io/gh/mvandervliet/jib-cli)
+[![wercker status](https://app.wercker.com/status/6f3dd5ae26c25a7f61eb1362554738a0/s/master "wercker status")](https://app.wercker.com/project/byKey/6f3dd5ae26c25a7f61eb1362554738a0)
+[![GitHub license](https://img.shields.io/github/license/jibcli/cli.svg)](https://github.com/jibcli/cli/blob/master/LICENSE)
+[![codecov](https://codecov.io/gh/jibcli/cli/branch/master/graph/badge.svg)](https://codecov.io/gh/jibcli/cli)
 
 ## Why `'jib'`
 
@@ -15,7 +15,7 @@ based on the extremely popular [Commander.js](https://www.npmjs.com/package/comm
 CLI development framework. As many sailors might attest, the **_jib_** is an essential
 component to commanding their ship - thus the name.
 
-> **Jib `| jib |`:** A triangular staysail set forward of the forwardmost mast.
+> **`| jib |`:** A triangular staysail set forward of the forwardmost mast.
 
 While it's not a dependency, this package was also somewhat influenced by Heroku's
 [`@oclif/command`](https://www.npmjs.com/package/@oclif/command) - namely that it's
@@ -103,7 +103,7 @@ best to use a static file as the bin, rather than a file emitted by TypeScript.
 Generally it's a good idea to ensure this file has executable permissions
 (ie `chmod +x bin/jib` in the example above).
 
-3. Configure the `new CLI({ /* options */ })` for your implementation
+3. Configure the `new CLI({ /* options */ })` for your implementation:
 
 | Option | Description | Default | Required |
 |--|--|--|--|

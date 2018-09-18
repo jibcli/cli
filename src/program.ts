@@ -1,6 +1,6 @@
-import { ICommandCtor, CommandImplementation, ICommandDefinition } from './command';
-import { Project, CONSTANTS, UI, Log } from './lib';
-import { CommandAdapter, ICommandOption, IAdapterOptionCallback } from './adapter';
+import { CommandAdapter, IAdapterOptionCallback, ICommandOption } from './adapter';
+import { CommandImplementation, ICommandCtor, ICommandDefinition } from './command';
+import { CONSTANTS, Log, UI } from './lib';
 import { IProjectConfig } from './project';
 
 /**
@@ -14,13 +14,20 @@ export interface IProgramOptionCallback<T> extends IAdapterOptionCallback<T> {
  * extend package config
  */
 export interface IProgramOptions extends IProjectConfig {
-  version?: string,
+  version?: string;
 }
 
 /**
  * Main program registry
  */
 export class Program {
+
+  /**
+   * getter for the resolved configuration
+   */
+  public get config(): IProgramOptions {
+    return this.options;
+  }
   // define ivars
   public root: CommandAdapter;
   private _ui = new UI.Writer();
@@ -37,28 +44,6 @@ export class Program {
 
     // create main cli adapter
     this.root = this._initAdapter();
-  }
-
-  private _initAdapter(): CommandAdapter {
-    return new CommandAdapter()
-      .version(this.options.version, '-v, --version'); // set default version option
-  }
-
-  /**
-   * create a command for the CLI processor
-   * @param syntax - command name/syntax
-   * @param desc - description for the command
-   * @return A command bound to the main program
-   */
-  private _command(syntax: string, desc?: string): CommandAdapter {
-    return this.root.subcommand(syntax, desc);
-  }
-
-  /**
-   * getter for the resolved configuration
-   */
-  public get config(): IProgramOptions {
-    return this.options;
   }
 
   /**
@@ -88,9 +73,11 @@ export class Program {
    * register a resolved command by its name and constructor
    * @param syntax the command name as registered
    * @param ctor the instance contstructor
-   * @param subcommands Subcommands of the parent. If zero-length array, it is assumed subcommands exist so '<subcommand>' will be used
+   * @param subcommands Subcommands of the parent. If zero-length array,
+   * it is assumed subcommands exist so '<subcommand>' will be used
    */
-  public registerCommand(syntax: string, ctor?: ICommandCtor<CommandImplementation>, subcommands?: ICommandDefinition[]): CommandAdapter {
+  public registerCommand(
+    syntax: string, ctor?: ICommandCtor<CommandImplementation>, subcommands?: ICommandDefinition[]): CommandAdapter {
     // this._logger.debug(`Registering command with syntax '${syntax}'`);
     const { commandDelim } = this.config;
 
@@ -123,48 +110,6 @@ export class Program {
     this._attachHandlers(child, ctor, subcommands);
 
     return child;
-  }
-
-  /**
-   * Apply command constructor annotation metadata to the adapter implementation
-   * @param adapter adapter to which command is bound
-   * @param ctor command constructor
-   */
-  private _applyCommandMeta(adapter: CommandAdapter, ctor: ICommandCtor<CommandImplementation>): CommandAdapter {
-    adapter.description(ctor.description)
-      .arguments(...ctor.args) // set argument syntax
-      .option(...ctor.options) // apply options
-      .allowUnknown(ctor.allowUnknown);
-    return adapter;
-  }
-
-  /**
-   * Attach handlers to the adapter from the command implementation
-   * @param adapter A registered command processing adapter
-   * @param ctor The command implementation constructor
-   * @param subcommands Any subcommands
-   */
-  private _attachHandlers(adapter: CommandAdapter, ctor?: ICommandCtor<CommandImplementation>, subcommands?: ICommandDefinition[]): void {
-    // initialize with command class
-    let instance: CommandImplementation;
-
-    // assign action while slicing non-interpreted args from command path
-    adapter.invocation((options: any, ...args: any[]) => {
-      // instantiate and call
-      instance = ctor && new ctor();
-      return instance && instance.run.call(instance, options, ...args)
-        .catch((e: any) => this._logger.error(e));
-
-    }).onHelp(() => {
-      instance = ctor && new ctor();
-      // if (subcommands && subcommands.length) {
-      //   // print subcommands in an aligned grid format
-      //   this._ui.outputSection('Subcommands', this._ui.grid(subcommands.map(item => {
-      //     return [item.name, item.ctor ? item.ctor.description : ''];
-      //   })));
-      // }
-      return instance && instance.help();
-    });
   }
 
   /**
@@ -228,6 +173,71 @@ export class Program {
    */
   public help(): void {
     this.root.showHelp();
+  }
+
+  private _initAdapter(): CommandAdapter {
+    return new CommandAdapter()
+      .version(this.options.version, '-v, --version'); // set default version option
+  }
+
+  /**
+   * create a command for the CLI processor
+   * @param syntax - command name/syntax
+   * @param desc - description for the command
+   * @return A command bound to the main program
+   */
+  private _command(syntax: string, desc?: string): CommandAdapter {
+    return this.root.subcommand(syntax, desc);
+  }
+
+  /**
+   * Apply command constructor annotation metadata to the adapter implementation
+   * @param adapter adapter to which command is bound
+   * @param ctor command constructor
+   */
+  private _applyCommandMeta(adapter: CommandAdapter, ctor: ICommandCtor<CommandImplementation>): CommandAdapter {
+    adapter.description(ctor.description)
+      .arguments(...ctor.args) // set argument syntax
+      .option(...ctor.options) // apply options
+      .allowUnknown(ctor.allowUnknown);
+    return adapter;
+  }
+
+  /**
+   * Attach handlers to the adapter from the command implementation
+   * @param adapter A registered command processing adapter
+   * @param ctor The command implementation constructor
+   * @param subcommands Any subcommands
+   */
+  private _attachHandlers(
+    adapter: CommandAdapter, ctor?: ICommandCtor<CommandImplementation>, subcommands?: ICommandDefinition[]): void {
+    // initialize with command class
+    let instance: CommandImplementation;
+
+    // assign action while slicing non-interpreted args from command path
+    adapter.invocation((options: any, ...args: any[]) => {
+      // instantiate and call
+      instance = ctor && new ctor();
+      return instance && instance.run.call(instance, options, ...args)
+        .catch((e: any) => {
+          this._logger.error(e);
+          process.exit(1);
+        });
+
+    }).onHelp(() => {
+      instance = ctor && new ctor();
+      if (instance) {
+
+        if (ctor.args) {
+          this._ui.outputSection(`Arguments`, this._ui.grid(ctor.args.map(arg => {
+            return [arg.name, arg.description || ''];
+          })));
+        }
+        return instance.help();
+      }
+
+      return instance && instance.help();
+    });
   }
 
 }

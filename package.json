@@ -1,6 +1,6 @@
 {
   "name": "@jib/cli",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "All-inclusive CLI development framework",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -16,22 +16,27 @@
     "prepack": "npm run build"
   },
   "author": "Matt Vander Vliet",
-  "homepage": "https://github.com/mvandervliet/jib-cli",
+  "license": "MIT",
+  "homepage": "https://github.com/jibcli/cli",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mvandervliet/jib-cli"
+    "url": "https://github.com/jibcli/cli"
   },
   "keywords": [
     "cli",
     "typescript",
     "command"
   ],
-  "license": "MIT",
+  "files": [
+    "build",
+    "!build/spec"
+  ],
   "dependencies": {
     "chalk": "^2.4.1",
     "commander": "^2.17.1"
   },
   "devDependencies": {
+    "@jib/tslint": "^0.0.1",
     "@types/fs-extra": "^5.0.4",
     "@types/jasmine": "^2.8.8",
     "@types/node": "^10.9.1",

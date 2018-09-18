@@ -1,6 +1,6 @@
-import { UI } from '../../';
-import { Writable } from 'stream';
 import chalk from 'chalk';
+import { Writable } from 'stream';
+import { UI } from '../../';
 
 describe('UI features', () => {
 
@@ -11,10 +11,10 @@ describe('UI features', () => {
     const isNotNewLine = (str: string): boolean =>  str && !!str.replace(/\n/g, '');
 
     class NoopStream extends Writable {
-      _write(chunk: Buffer, encoding: string, cb: () => void) {
-        cb()
+      public _write(chunk: Buffer, encoding: string, cb: () => void) {
+        cb();
       }
-    };
+    }
 
     beforeEach(() => {
       mockStream = new NoopStream();
@@ -22,7 +22,7 @@ describe('UI features', () => {
     });
 
     it('should default to stdout stream', () => {
-      let u = new UI.Writer();
+      const u = new UI.Writer();
       spyOn(process.stdout, 'write').and.throwError('hi');
       expect(() => u.write('hello')).toThrowError('hi');
     });
@@ -67,7 +67,7 @@ describe('UI features', () => {
       spyOn(mockStream, 'write').and.callFake((str: string) => {
         expect(typeof str).toBe('string');
       });
-      let msg: any = {foo: 'bar'};
+      const msg: any = {foo: 'bar'};
       ui.write(msg);
       msg.bar = msg;
       ui.write(msg); // recursive
@@ -107,7 +107,7 @@ describe('UI features', () => {
       const grid = ui.grid(table);
       // console.log(grid);
       // TODO: improve assertions
-      expect(grid).toContain(`1    this is         row 1`)
+      expect(grid).toContain(`1    this is         row 1`);
       expect(grid).toContain(`2    and this is     row 2 with longer text`);
       expect(grid).toContain(chalk.yellow('3') + '    ');
     });
@@ -118,7 +118,7 @@ describe('UI features', () => {
       });
 
       ui.outputGrid([
-        ['one', 'two']
+        ['one', 'two'],
       ]);
     });
 

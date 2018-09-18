@@ -1,7 +1,6 @@
-import { OutputStream } from './stream';
 import chalk from 'chalk';
-
 import { CONSTANTS } from '../constants';
+import { OutputStream } from './stream';
 
 /**
  * User interface layer for command line outputs.
@@ -14,7 +13,7 @@ export namespace UI {
     TWO,
     THREE,
     FOUR,
-  };
+  }
 
   export class Writer extends OutputStream {
     /** ivar reference to chalk as 'color' */
@@ -26,7 +25,7 @@ export namespace UI {
      * @param body section text
      */
     public outputSection(heading: string, body: string | string[]): Writer {
-      return this.write(`\n${heading}:\n\n${this._indentLines(body, TAB.ONE)}`)
+      return this.write(`\n${heading}:\n\n${this._indentLines(body, TAB.ONE)}`);
     }
 
     /**
@@ -53,7 +52,7 @@ export namespace UI {
      * @param spacing spacing between items
      */
     public grid(table: (string | number)[][], spacing = TAB.TWO): string {
-      let widths = this._colWidths(table);
+      const widths = this._colWidths(table);
       const rows = table.reduce((list: string[], row: string[]) => {
 
         // determine the number of lines in this row
@@ -68,11 +67,11 @@ export namespace UI {
         row.map(cell => cell + '') // to string
           .forEach((text: string, col: number) => {
             const w = widths[col];
-            let lines = this._lines(text);
+            const lines = this._lines(text);
             for (let i = 0; i < subgrid.length; i++) {
               // create new cells for this line
-              let cellText = (lines[i] || '').trim();
-              let clean = cleanText(cellText);
+              const cellText = (lines[i] || '').trim();
+              const clean = cleanText(cellText);
               const diff = w - clean.length;
               const rpad = diff > 0 ? new Array(diff + 1).join(' ') : '';
 
@@ -91,7 +90,7 @@ export namespace UI {
      * @param table a table structure with columns
      */
     private _colWidths(table: (string | number)[][]): number[] {
-      let widths: number[] = [];
+      const widths: number[] = [];
       table.forEach(row => {
         row.forEach((cell, col) => {
           const cellW = this._lines(cleanText(`${cell}`)).map(line => line.length);
