@@ -21,18 +21,22 @@ export interface IProgramOptions extends IProjectConfig {
  * Main program registry
  */
 export class Program {
-
-  /**
-   * getter for the resolved configuration
-   */
-  public get config(): IProgramOptions {
-    return this.options;
+  // static members
+  public static main(): Program {
+    return this._main;
   }
+  private static _main: Program;
+
   // define ivars
   public root: CommandAdapter;
   private _ui = new UI.Writer();
   private _logger = new Log.Logger();
+  private _rargs: string[];
 
+  /**
+   * Create the program executor
+   * @param options program options for command handling
+   */
   constructor(private readonly options: IProgramOptions = {}) {
     // ensure required configs
     this.options.commandDelim = this.options.commandDelim || CONSTANTS.COMMAND_DELIMITER;
@@ -44,6 +48,24 @@ export class Program {
 
     // create main cli adapter
     this.root = this._initAdapter();
+
+    // assign static instance
+    Program._main = Program._main || this;
+  }
+
+  /**
+   * getter for the resolved configuration
+   */
+  public get config(): IProgramOptions {
+    return this.options;
+  }
+
+  /**
+   * get the version specified for the program
+   */
+  public get version(): string {
+    const { version } = this.options;
+    return version;
   }
 
   /**
@@ -163,8 +185,15 @@ export class Program {
   /**
    * execute the argv against the registered commands
    * @param argv argv as passthrough to the command processor
+   * @param path command invocation path
    */
-  public exec(argv: string[]): void {
+  public exec(argv: string[], path: string[] = []): void {
+    const { commandDelim } = this.options;
+    // resolve raw arguments after command
+    this._rargs = path.join(commandDelim).split(' ').reduce((args, arg) => {
+      return args.slice(args.indexOf(arg));
+    }, argv).slice(1);
+    // execute parser
     this.root.exec(argv);
   }
 
@@ -218,17 +247,25 @@ export class Program {
     adapter.invocation((options: any, ...args: any[]) => {
       // instantiate and call
       instance = ctor && new ctor();
-      return instance && instance.run.call(instance, options, ...args)
-        .catch((e: any) => {
-          this._logger.error(e);
-          process.exit(1);
-        });
+      if (instance) {
+        // assign raw arguments
+        instance.rawArgs = [...this._rargs];
+        // invoke run with options and parsed args
+        const p = instance.run.call(instance, options, ...args.slice(0, ctor.args.length));
+        if (p && p.catch) {
+          p.catch((e: any) => {
+            this._logger.error(e);
+            process.exit(1);
+          });
+        } else {
+          this._logger.warn(`${ctor.__canonical}::run method should return a Promise`);
+        }
+      }
 
     }).onHelp(() => {
       instance = ctor && new ctor();
       if (instance) {
-
-        if (ctor.args) {
+        if (ctor.args.length) {
           this._ui.outputSection(`Arguments`, this._ui.grid(ctor.args.map(arg => {
             return [arg.name, arg.description || ''];
           })));

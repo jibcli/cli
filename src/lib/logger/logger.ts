@@ -30,13 +30,33 @@ export namespace Log {
 
   export type TLoggerStream = TOutputWritable;
 
+  /**
+   * Basic interface for any logger implementation
+   */
+  export interface ILogger {
+    name?: string;
+    trace(...msg: any[]): any;
+    debug(...msg: any[]): any;
+    info(...msg: any[]): any;
+    warn(...msg: any[]): any;
+    error(...msg: any[]): any;
+    fatal(...msg: any[]): any;
+  }
+
+  /**
+   * Options for a logger instance
+   */
   export interface ILoggerOptions extends IOutputStreamOptions {
     name?: string;
     level?: LOG_LEVEL;
     stream?: TLoggerStream;
   }
 
-  export class Logger extends OutputStream {
+  /**
+   * Standard logger instance for the program and its commands
+   * @todo Allow BYO logger
+   */
+  export class Logger extends OutputStream implements ILogger {
 
     /**
      * Set a default level to be used by all logger instantantiations
@@ -47,17 +67,25 @@ export namespace Log {
     }
 
     /**
+     * set a default logger instance
+     * @param logger the logger implementation to use
+     */
+    public static setDefaultLogger(logger: ILogger): void {
+      this._default = logger;
+    }
+
+    /**
      * Get a singleton, default logger instance.
      * @param options options for the default logger, when not yet instantiated
      */
-    public static defaultLogger(options?: ILoggerOptions): Logger {
+    public static defaultLogger(options?: ILoggerOptions): ILogger {
       if (!this._default) {
         this._default = new this(options);
       }
       return this._default;
     }
 
-    private static _default: Logger;
+    private static _default: ILogger;
     private static _defaultLevel: LOG_LEVEL = LOG_LEVEL.WARN;
     public name: string;
     private _level: LOG_LEVEL;
@@ -131,7 +159,7 @@ export namespace Log {
         // colorize level label
         const label = chalk.bold(chalk[LogLevelChalkMap.get(level)](LOG_LEVEL[level]));
         const nameLabel = name ? chalk.dim(` (${name})`) : '';
-        this.write(`${label}:${nameLabel}`, ...msgs);
+        this.write(`${label}${nameLabel}:`, ...msgs);
       }
       return this;
     }

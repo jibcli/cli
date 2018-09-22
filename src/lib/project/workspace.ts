@@ -2,9 +2,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 /**
- * CLI Project utilities
+ * CLI Workspace utilities
  */
-export namespace Project {
+export namespace Workspace {
   /**
    * Read/require package.json in a given directory
    * @param dir package directory
@@ -23,18 +23,46 @@ export namespace Project {
   }
 
   /**
-   * resolve a file in the project workspace
-   * @param dir starting directory
+   * resolve a file or directory in the project workspace
+   * @param from starting directory or file path
    * @param name file name to resolve
    * @param parent parent directory (of last call)
+   * @internal
    */
-  export function resolveFile(dir: string, name: string, parent?: string): string {
-    const fp: string = path.join(dir, name);
+  function _resolveFile(from: string, name: string, parent?: string): string {
+    const fp: string = path.join(from, name);
     if (fs.existsSync(fp)) {
       return fp;
-    } else if (dir !== parent) {
-      return resolveFile(path.dirname(dir), name, dir);
+    } else if (from !== parent) { // `dir === parent` when traversal tops out
+      return _resolveFile(path.dirname(from), name, from);
     }
+  }
+
+  /**
+   * resolve a file upwards in the project workspace
+   * @param from starting directory or file path
+   * @param name file name to resolve
+   */
+  export function resolveFile(from: string, name: string) {
+    return _resolveFile(from, name);
+  }
+
+  /**
+   * resolve a directory upwards in the project workspace
+   * @param from starting directory or file path
+   * @param name directory name to resolve
+   */
+  export function resolveDir(from: string, name: string): string {
+    return _resolveFile(from, name);
+  }
+
+  /**
+   * Resolve the project root directory
+   * @param from a directory or file path from which base scan occurs
+   */
+  export function resolveRootDir(from?: string): string {
+    from = from || process.mainModule.filename;
+    return path.dirname(resolveFile(from, 'package.json') || '');
   }
 
   /**
@@ -49,11 +77,11 @@ export namespace Project {
 
   /**
    * resolve path to a tsconfig file
-   * @param dir project directory where tsconfig should exist
+   * @param from project directory (or child directory) where tsconfig should apply
    * @internal
    */
-  function resolveTsConfig(dir: string): string {
-    return resolveFile(dir, 'tsconfig.json');
+  function resolveTsConfig(from: string): string {
+    return resolveFile(from, 'tsconfig.json');
   }
 
   /**

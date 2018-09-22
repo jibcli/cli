@@ -1,7 +1,7 @@
 import * as fs from 'fs-extra';
 import * as os from 'os';
 import * as path from 'path';
-import { CONSTANTS, Project } from '../../lib';
+import { CONSTANTS, Workspace } from '../../lib';
 
 describe('Package utilities', () => {
   const tmpdir: string = path.join(os.tmpdir(), '' + Math.random());
@@ -26,10 +26,21 @@ describe('Package utilities', () => {
     };
     fs.writeFileSync(path.join(tmpdir, 'package.json'), JSON.stringify(pkg, null, 2));
 
-    const read = Project.getPackageJson(tmpdir);
+    const read = Workspace.getPackageJson(tmpdir);
     Object.keys(pkg).forEach(key => {
       expect(read[key]).toEqual(pkg[key], `${key} not read correctly`);
     });
+  });
+
+  it('should locate project root', () => {
+    mkEmptyFile('package.json');
+    expect(Workspace.resolveRootDir(tmpdir)).toEqual(tmpdir);
+    expect(Workspace.resolveRootDir(__dirname)).toBeTruthy();
+  });
+
+  it('should locate a project directory', () => {
+    const tmp = os.tmpdir();
+    expect(Workspace.resolveDir(tmpdir, path.basename(tmp))).toBe(tmp);
   });
 
   it('should list only "requireable" files', () => {
@@ -50,7 +61,7 @@ describe('Package utilities', () => {
     mkEmptyDir(tests.subdir);
 
     // run assertions
-    const list = Project.listRequirable(tmpdir);
+    const list = Workspace.listRequirable(tmpdir);
     // files
     expect(~list.indexOf(tests.jsFile)).toBeTruthy(`JavaScript file was excluded`);
     expect(~list.indexOf(tests.tsFile)).toBeTruthy(`TypeScript file was excluded`);
@@ -65,7 +76,7 @@ describe('Package utilities', () => {
     let testImplDir: string;
     testImplDir = path.resolve(__dirname, '..', 'support', 'impl');
 
-    expect(Project._resolveCommandDir(testImplDir, 'commands')).toEqual('commands');
+    expect(Workspace._resolveCommandDir(testImplDir, 'commands')).toEqual('commands');
   });
 
 });

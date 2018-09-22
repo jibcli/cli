@@ -25,9 +25,19 @@ describe('Logger', () => {
   });
 
   it('should create default logger', () => {
+    MockLogger['_default'] = null;
     const log = MockLogger.defaultLogger();
     expect(log instanceof Log.Logger).toBe(true);
     expect(MockLogger.defaultLogger()).toBe(log, 'did not reuse the singleton logger');
+  });
+
+  it('should allow supplying a default logger', () => {
+    const info = spyOn(console, 'info');
+    MockLogger.setDefaultLogger(console as any);
+    const log = MockLogger.defaultLogger();
+    expect(log).toEqual(console as any);
+    log.info('test');
+    expect(info).toHaveBeenCalled();
   });
 
   it('should allow level to be set', () => {

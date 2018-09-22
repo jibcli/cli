@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import { EOL } from 'os';
 import { Writable } from 'stream';
 import { inspect } from 'util';
 
@@ -27,7 +28,7 @@ export class OutputStream {
    */
   public write(...msgs: any[]): this {
     msgs.forEach((msg, i) => this.stream.write(`${i ? ' ' : ''}${this._format(msg)}`));
-    this.stream.write(`\n`);
+    this.stream.write(EOL);
     return this;
   }
 

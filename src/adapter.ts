@@ -218,7 +218,7 @@ export class CommandAdapter {
       // normalize the args
       const syntaxLeads: string[] = this._syntaxArgSplice.slice(0, -1);
       const args = invocation.slice(syntaxLeads.length);
-      // console.log('OVERRIDE', this.syntax, {opts, invocation, syntaxLeads, args});
+      // console.log('OVERRIDE', this.syntax, {invocation, syntaxLeads, args});
       handler(opts, ...args);
     });
     return this;
@@ -266,7 +266,7 @@ export class CommandAdapter {
 
   /**
    * Get splice of syntax where parts may be misconstrued as
-   * parsed arguments
+   * parsed arguments, especially when the command delimiter is a `' '`
    */
   private get _syntaxArgSplice(): string[] {
     return (this.syntax || '').split(' ').slice(1);

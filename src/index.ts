@@ -1,5 +1,5 @@
 // expose some core libs
-export { UI, Log } from './lib';
+export { UI, Log, Workspace } from './lib';
 // expose main objects and interfaces
 export { IProjectConfig } from './project';
 export { Command, BaseCommand } from './command';
