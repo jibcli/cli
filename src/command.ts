@@ -1,20 +1,6 @@
 import { ICommandArgument, ICommandOption } from './adapter';
 import { Log, UI } from './lib';
 
-
-/**
- * Interface for the decorated command implementation constructor
- */
-export interface ICommandCtor<T extends BaseCommand> {
-  hidden: boolean;
-  description: string;
-  args: ICommandArgument[];
-  options: ICommandOption[];
-  allowUnknown: boolean;
-  ctor: ICommandCtor<T>;
-  new (...args: any[]): T;
-}
-
 /**
  * Definition for a parsed command implementation
  * @private
@@ -26,7 +12,6 @@ export interface ICommandDefinition {
   ctor?: ICommandCtor<CommandImplementation>;
   subcommands?: ICommandDefinition[];
 }
-
 
 /**
  * Annotations object for the Command implementation decorator
@@ -91,7 +76,7 @@ export interface ICommand {
  * ```
  * @param annotations decorator annotation object
  */
-export function Command(annotations: ICommand): Function { // decorator factory
+export function Command(annotations: ICommand): (ctor: any) => any { // decorator factory
   return <T extends ICommandCtor<CommandImplementation>>(ctor: T) => { // class decorator
     const { hidden, description, args, options, allowUnknown } = annotations;
     // extend the decorated class ctor
@@ -117,7 +102,30 @@ export function Command(annotations: ICommand): Function { // decorator factory
 
     return CommandImpl;
   };
-};
+}
+
+/**
+ * Interface for the decorated command implementation constructor
+ */
+export interface ICommandCtor<T extends BaseCommand> {
+  hidden: boolean;
+  description: string;
+  args: ICommandArgument[];
+  options: ICommandOption[];
+  allowUnknown: boolean;
+  ctor: ICommandCtor<T>;
+  new (...args: any[]): T;
+}
+
+/**
+ * Interface to denote an implementation of required abstract
+ * methods in BaseCommand
+ */
+export interface CommandImplementation extends BaseCommand {
+  help?(): void;
+  run(options: any, ...args: any[]): Promise<any>;
+}
+
 
 /**
  * Command abstract which all implementations should extend.
@@ -139,8 +147,8 @@ export abstract class BaseCommand {
   // representation of the class implementation name
   protected readonly _name: string;
   // ivars
-  public logger = new Log.Logger({name: this._name});
-  public ui = new UI.Writer();
+  protected logger = new Log.Logger({name: this._name});
+  protected ui = new UI.Writer();
 
   /**
    * Command action runner.
@@ -149,13 +157,4 @@ export abstract class BaseCommand {
    */
   public abstract async run(options: any, ...args: any[]): Promise<any>;
 
-}
-
-/**
- * Interface to denote an implementation of required abstract
- * methods in BaseCommand
- */
-export interface CommandImplementation extends BaseCommand {
-  help?(): void;
-  run(options: any, ...args: any[]): Promise<any>;
 }

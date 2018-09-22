@@ -3,9 +3,9 @@
  */
 export interface IProjectConfig {
   /** path to default command implementation, or a single command CLI */
-  rootCommand?: string,
+  rootCommand?: string;
   /** path to compiled command outputs */
-  commandDir?: string,
+  commandDir?: string;
   /** syntax delimiter for subcommands. (default is `' '`) */
-  commandDelim?: string | null,
+  commandDelim?: string | null;
 }

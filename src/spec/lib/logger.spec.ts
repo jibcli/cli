@@ -1,6 +1,6 @@
-import { Log } from '../../';
-import { Writable } from 'stream';
 import chalk from 'chalk';
+import { Writable } from 'stream';
+import { Log } from '../../';
 
 describe('Logger', () => {
 
@@ -12,10 +12,10 @@ describe('Logger', () => {
     }
   }
   class NoopStream extends Writable {
-    _write(chunk: Buffer, encoding: string, cb: () => void) {
-      cb()
+    public _write(chunk: Buffer, encoding: string, cb: () => void) {
+      cb();
     }
-  };
+  }
 
   beforeAll(() => mockStream = new NoopStream());
 
@@ -25,7 +25,7 @@ describe('Logger', () => {
   });
 
   it('should create default logger', () => {
-    let log = MockLogger.defaultLogger();
+    const log = MockLogger.defaultLogger();
     expect(log instanceof Log.Logger).toBe(true);
     expect(MockLogger.defaultLogger()).toBe(log, 'did not reuse the singleton logger');
   });

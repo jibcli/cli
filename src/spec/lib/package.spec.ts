@@ -1,10 +1,10 @@
-import * as os from 'os';
 import * as fs from 'fs-extra';
+import * as os from 'os';
 import * as path from 'path';
-import { Project, CONSTANTS } from '../../lib';
+import { CONSTANTS, Project } from '../../lib';
 
 describe('Package utilities', () => {
-  let tmpdir: string = path.join(os.tmpdir(), '' + Math.random());
+  const tmpdir: string = path.join(os.tmpdir(), '' + Math.random());
   beforeAll(() => fs.mkdirSync(tmpdir));
   afterAll(() => fs.remove(tmpdir));
 
@@ -17,16 +17,16 @@ describe('Package utilities', () => {
 
   it('should read package.json contents', () => {
     // write package.json
-    let pkg: any = {
+    const pkg: any = {
       name: 'tmp-project',
       version: '1.0.0',
       [CONSTANTS.PKG_CONFIG_KEY]: {
-        foo: 'bar'
-      }
+        foo: 'bar',
+      },
     };
     fs.writeFileSync(path.join(tmpdir, 'package.json'), JSON.stringify(pkg, null, 2));
 
-    let read = Project.getPackageJson(tmpdir);
+    const read = Project.getPackageJson(tmpdir);
     Object.keys(pkg).forEach(key => {
       expect(read[key]).toEqual(pkg[key], `${key} not read correctly`);
     });

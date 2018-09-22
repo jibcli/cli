@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { OutputStream, IOutputStreamOptions, TOutputWritable } from '../ui';
+import { IOutputStreamOptions, OutputStream, TOutputWritable } from '../ui';
 
 /**
  * Module to handle logging outputs
@@ -14,7 +14,7 @@ export namespace Log {
     WARN,
     ERROR,
     FATAL,
-  };
+  }
 
   /**
    * Map of log level color treatments
@@ -37,10 +37,6 @@ export namespace Log {
   }
 
   export class Logger extends OutputStream {
-    private static _default: Logger;
-    private static _defaultLevel: LOG_LEVEL = LOG_LEVEL.WARN;
-    private _level: LOG_LEVEL;
-    public name: string;
 
     /**
      * Set a default level to be used by all logger instantantiations
@@ -61,21 +57,15 @@ export namespace Log {
       return this._default;
     }
 
-    constructor(options: ILoggerOptions = <ILoggerOptions>{}) {
+    private static _default: Logger;
+    private static _defaultLevel: LOG_LEVEL = LOG_LEVEL.WARN;
+    public name: string;
+    private _level: LOG_LEVEL;
+
+    constructor(options: ILoggerOptions = <ILoggerOptions> { }) {
       super(options);
       this.name = options.name || null;
       this._level = options.level || Logger._defaultLevel;
-    }
-
-    private _log(msgs: any[], level: LOG_LEVEL): Logger {
-      if (this._level && level >= this._level) {
-        const { name } = this;
-        // colorize level label
-        const label = chalk.bold(chalk[LogLevelChalkMap.get(level)](LOG_LEVEL[level]));
-        const nameLabel = name ? chalk.dim(` (${name})`) : '';
-        this.write(`${label}:${nameLabel}`, ...msgs);
-      }
-      return this;
     }
 
     /**
@@ -128,6 +118,22 @@ export namespace Log {
      */
     public fatal(msg: Error): Logger {
       return this._log([msg], LOG_LEVEL.FATAL);
+    }
+
+    /**
+     * Write the log messages to the stream
+     * @param msgs messages to write
+     * @param level log level to write
+     */
+    private _log(msgs: any[], level: LOG_LEVEL): Logger {
+      if (this._level && level >= this._level) {
+        const { name } = this;
+        // colorize level label
+        const label = chalk.bold(chalk[LogLevelChalkMap.get(level)](LOG_LEVEL[level]));
+        const nameLabel = name ? chalk.dim(` (${name})`) : '';
+        this.write(`${label}:${nameLabel}`, ...msgs);
+      }
+      return this;
     }
 
   }

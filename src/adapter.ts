@@ -58,9 +58,7 @@ export interface ICommandOption {
 /**
  * Callback for an option with value callback
  */
-export interface IAdapterOptionCallback<T> {
-  (value: T): void;
-}
+export type IAdapterOptionCallback<T> = (value: T) => void;
 
 /**
  * CommanderJS adapter class for registering commands and applying methods to
@@ -83,17 +81,6 @@ export class CommandAdapter {
   constructor(private cmd: IProgramCommand = _CLI, public readonly syntax?: string) {
     // flag when is root
     this._isRoot = cmd === _CLI;
-  }
-
-  /**
-   * Ensure the command on the root adapter instance
-   * @param msg error message to throw when not root
-   * @throws when not is root
-   */
-  private _ensureRoot(msg: string): void {
-    if (!this._isRoot) {
-      throw new Error(msg);
-    }
   }
 
   /**
@@ -122,24 +109,6 @@ export class CommandAdapter {
   }
 
   /**
-   * update usage information from ivars
-   */
-  private _setUsage(): void {
-    const usage = this._syntaxArgSplice;
-    if (this._subs.size) {
-      const sub = this._isRoot ? '[command]' : '<command>'
-      usage.push(sub);
-    }
-    if (this._hasOptions) {
-      usage.push('[options]');
-    }
-    if (this._argString) {
-      usage.push(this._argString);
-    }
-    this.cmd.usage(usage.join(' '));
-  }
-
-  /**
    * Add command description
    * @param desc the command description
    */
@@ -157,25 +126,6 @@ export class CommandAdapter {
     this.cmd.arguments(this._argString);
     this._setUsage();
     return this;
-  }
-
-  /**
-   * Format args into a parse-able syntax string
-   * @param args arg list to derive syntax string
-   */
-  private _argumentSyntax(args?: ICommandArgument[]): string {
-    return (args || []).map(arg => {
-      const spread = arg.multi ? '...' : '';
-      return arg.optional ? `[${arg.name}${spread}]` : `<${arg.name}${spread}>`
-    }).join(' ');
-  }
-
-  /**
-   * Get splice of syntax where parts may be misconstrued as
-   * parsed arguments
-   */
-  private get _syntaxArgSplice(): string[] {
-    return (this.syntax || '').split(' ').slice(1);
   }
 
   /**
@@ -272,6 +222,54 @@ export class CommandAdapter {
       handler(opts, ...args);
     });
     return this;
+  }
+
+  /**
+   * Ensure the command on the root adapter instance
+   * @param msg error message to throw when not root
+   * @throws when not is root
+   */
+  private _ensureRoot(msg: string): void {
+    if (!this._isRoot) {
+      throw new Error(msg);
+    }
+  }
+
+  /**
+   * Format args into a parse-able syntax string
+   * @param args arg list to derive syntax string
+   */
+  private _argumentSyntax(args?: ICommandArgument[]): string {
+    return (args || []).map((arg: ICommandArgument) => {
+      const spread = arg.multi ? '...' : '';
+      return arg.optional ? `[${arg.name}${spread}]` : `<${arg.name}${spread}>`;
+    }).join(' ');
+  }
+
+  /**
+   * update usage information from ivars
+   */
+  private _setUsage(): void {
+    const usage = this._syntaxArgSplice;
+    if (this._subs.size) {
+      const sub = this._isRoot ? '[command]' : '<command>';
+      usage.push(sub);
+    }
+    if (this._hasOptions) {
+      usage.push('[options]');
+    }
+    if (this._argString) {
+      usage.push(this._argString);
+    }
+    this.cmd.usage(usage.join(' '));
+  }
+
+  /**
+   * Get splice of syntax where parts may be misconstrued as
+   * parsed arguments
+   */
+  private get _syntaxArgSplice(): string[] {
+    return (this.syntax || '').split(' ').slice(1);
   }
 
 }
