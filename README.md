@@ -5,8 +5,9 @@ CLI framework for projects with any level of CLI command functionality.
 
 [![npm version](https://badge.fury.io/js/%40jib%2Fcli.svg)](https://badge.fury.io/js/%40jib%2Fcli)
 [![wercker status](https://app.wercker.com/status/6f3dd5ae26c25a7f61eb1362554738a0/s/master "wercker status")](https://app.wercker.com/project/byKey/6f3dd5ae26c25a7f61eb1362554738a0)
-[![GitHub license](https://img.shields.io/github/license/jibcli/cli.svg)](https://github.com/jibcli/cli/blob/master/LICENSE)
 [![codecov](https://codecov.io/gh/jibcli/cli/branch/master/graph/badge.svg)](https://codecov.io/gh/jibcli/cli)
+[![GitHub license](https://img.shields.io/github/license/jibcli/cli.svg)](https://github.com/jibcli/cli/blob/master/LICENSE)
+[![install size](https://packagephobia.now.sh/badge?p=@jib/cli)](https://packagephobia.now.sh/result?p=@jib/cli)
 
 ## Why `'jib'`
 
@@ -259,14 +260,15 @@ it is not supported at this time.
 - [x] Add support for single, named, command - this is configured as `"rootCommand"`
 - [ ] Enable command ordering with `ICommand.priority` annotation
 - [ ] Support command group with file implementation (descriptor) & directory of same name
-- [ ] Test harness for implementations `@jib/cli/testing`
+- [ ] Include test harness for implementations `@jib/cli/testing`
 - [ ] Add `Dockerfile` to cli implementations for docker-based execution
 - [ ] Add built-in support for `stdin` pipes
 - [ ] Add support for custom text additions on `-v|--version` (copyright, foo, etc.)
 - [ ] Add support for command mispellings
 - [ ] Add support for command aliases
 - [ ] Add support for plugins
-  - [ ] Yeoman generator framework `@jib/cli-gen`
+  - [ ] Yeoman generator framework `@jib/cli-codegen`
+  - [ ] Config Storage framework `@jib/cli-storage`
   - [ ] Prompting `@jib/cli-prompt`
   - [ ] UI spinner `@jib/cli-spinner`
   - [ ] UI table `@jib/cli-table`

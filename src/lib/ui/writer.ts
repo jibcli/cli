@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import { EOL } from 'os';
 import { CONSTANTS } from '../constants';
 import { OutputStream } from './stream';
 
@@ -25,7 +26,7 @@ export namespace UI {
      * @param body section text
      */
     public outputSection(heading: string, body: string | string[]): Writer {
-      return this.write(`\n${heading}:\n\n${this._indentLines(body, TAB.ONE)}`);
+      return this.write(`${EOL}${heading}:${EOL + EOL}${this._indentLines(body, TAB.ONE)}`);
     }
 
     /**
@@ -82,7 +83,7 @@ export namespace UI {
         return list.concat(subgrid.map(cells => cells.join(this._indent(spacing))));
       }, [] as string[]);
 
-      return rows.join('\n');
+      return rows.join(EOL);
     }
 
     /**
@@ -115,7 +116,7 @@ export namespace UI {
      * @param tabs
      */
     private _indentLines(text: string | string[], tabs = TAB.ONE): string {
-      return this._lines(text).map(line => `${this._indent(tabs)}${line.trim()}`).join('\n');
+      return this._lines(text).map(line => `${this._indent(tabs)}${line.trim()}`).join(EOL);
     }
 
     /**
@@ -124,7 +125,7 @@ export namespace UI {
      */
     private _lines(text: string | string[]): string[] {
       const chunks = [].concat(text);
-      const lines = [].concat(...chunks.map(item => item.trim().split('\n')));
+      const lines = [].concat(...chunks.map(item => item.trim().split(EOL)));
       return lines;
     }
   }

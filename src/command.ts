@@ -80,6 +80,7 @@ export function Command(annotations: ICommand): (ctor: any) => any { // decorato
   return <T extends ICommandCtor<CommandImplementation>>(ctor: T) => { // class decorator
     const { hidden, description, args, options, allowUnknown } = annotations;
     // extend the decorated class ctor
+    ctor.__canonical = ctor.name;
     class CommandImpl extends ctor {
       // use annotations to seed static properties for reading without initializing
       public static readonly hidden = hidden;
@@ -114,6 +115,7 @@ export interface ICommandCtor<T extends BaseCommand> {
   options: ICommandOption[];
   allowUnknown: boolean;
   ctor: ICommandCtor<T>;
+  __canonical: string;
   new (...args: any[]): T;
 }
 
@@ -144,11 +146,15 @@ export interface CommandImplementation extends BaseCommand {
  * ```
  */
 export abstract class BaseCommand {
-  // representation of the class implementation name
-  protected readonly _name: string;
-  // ivars
-  protected logger = new Log.Logger({name: this._name});
-  protected ui = new UI.Writer();
+
+  /** reference to raw args received by the user input */
+  public rawArgs: string[] = [];
+  /** ui writer instance */
+  public ui = new UI.Writer();
+  /** logging instance */
+  public logger: Log.Logger = new Log.Logger({
+    name: (this.constructor as ICommandCtor<CommandImplementation>).__canonical,
+  });
 
   /**
    * Command action runner.

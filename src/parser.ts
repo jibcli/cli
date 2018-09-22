@@ -2,11 +2,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ICommandOption } from './adapter';
 import { BaseCommand, CommandImplementation, ICommandCtor, ICommandDefinition } from './command';
-import { CONSTANTS, Log, Project } from './lib';
+import { CONSTANTS, Log, Workspace } from './lib';
 import { IProgramOptionCallback, IProgramOptions, Program } from './program';
 
 /**
- * interface for fs scann result
+ * interface for fs scan result
  */
 interface IScanResult {
   stats: fs.Stats;
@@ -21,11 +21,16 @@ export interface ICLIOptions extends IProgramOptions {
   baseDir?: string; // working directory from which commands are based
 }
 
+/**
+ * The main entrypoint for CLI argv parsing and execution
+ */
 export class CLI {
 
   public logger = new Log.Logger();
   public program: Program;
 
+  private _arity: number;
+  private _commandPath: string[];
 
   /**
    * Creates a new CLI parser instance
@@ -43,7 +48,7 @@ export class CLI {
     // construct options
     this.options = {
       // location of file running the process
-      baseDir: path.dirname(Project.resolveFile(process.mainModule.filename, 'package.json') || ''),
+      baseDir: Workspace.resolveRootDir(),
       ...(options || {} as ICLIOptions),
     };
 
@@ -125,7 +130,7 @@ export class CLI {
         }
 
         // parse the program to invoke command run loop
-        this.program.exec(argv);
+        this.program.exec(argv, this._commandPath);
       } else {
         // arguments could not resolve a command, so proceed with help
         this._initHelpFromPath(this._commandRoot);
@@ -160,9 +165,9 @@ export class CLI {
     // resolve package.json
     let pkgJson: any;
     try {
-      pkgJson = Project.getPackageJson(baseDir);
+      pkgJson = Workspace.getPackageJson(baseDir);
     } catch (e) {
-      throw new Error(`Invalid CLI project: '${baseDir}'`);
+      throw new Error(`Invalid project: '${baseDir}'`);
     }
 
     // read config from pack json
@@ -170,7 +175,7 @@ export class CLI {
 
     // resolve command directory & update config
     let commandDir = pkgJsonConfig.commandDir || CONSTANTS.COMMAND_DIRECTORY;
-    const resolvedDir = Project._resolveCommandDir(baseDir, commandDir);
+    const resolvedDir = Workspace._resolveCommandDir(baseDir, commandDir);
     this.options.commandDir = commandDir = resolvedDir;
     if (!resolvedDir) {
       throw new Error(`Unable to resolve command directory '${commandDir}' in '${baseDir}`);
@@ -247,6 +252,9 @@ export class CLI {
         }
       }
     }
+    // assign depth and ref
+    this._arity = i + 1;
+    this._commandPath = args.slice(0, this._arity);
     return command;
   }
 
@@ -255,7 +263,7 @@ export class CLI {
    * @param dir directory to scan
    */
   private _scanDir(dir: string): IScanResult[] {
-    return Project.listRequirable(dir)
+    return Workspace.listRequirable(dir)
       .map(item => {
         const location = path.join(dir, item);
         const name = item.replace(/\.\w+$/, ''); // remove extension for name
