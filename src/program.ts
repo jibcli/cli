@@ -32,6 +32,7 @@ export class Program {
   private _ui = new UI.Writer();
   private _logger = new Log.Logger();
   private _rargs: string[];
+  private _done: (value?: void | PromiseLike<void>) => void;
 
   /**
    * Create the program executor
@@ -178,6 +179,7 @@ export class Program {
         this._ui.output();
         this._ui.outputLines(heading || body, 1);
       }
+      return this._done && this._done();
     });
     return this;
   }
@@ -187,23 +189,41 @@ export class Program {
    * @param argv argv as passthrough to the command processor
    * @param path command invocation path
    */
-  public exec(argv: string[], path: string[] = []): void {
-    const { commandDelim } = this.options;
-    // resolve raw arguments after command
-    this._rargs = path.join(commandDelim).split(' ').reduce((args, arg) => {
-      return args.slice(args.indexOf(arg));
-    }, argv).slice(1);
-    // execute parser
-    this.root.exec(argv);
+  public exec(argv: string[], path: string[] = []): Promise<void> {
+    return this._deferred(() => {
+      const { commandDelim } = this.options;
+      // resolve raw arguments after command
+      this._rargs = path.join(commandDelim).split(' ').reduce((args, arg) => {
+        return args.slice(args.indexOf(arg));
+      }, argv).slice(1);
+      // execute parser
+      this.root.exec(argv);
+    });
   }
 
   /**
    * output help text
    */
-  public help(): void {
-    this.root.showHelp();
+  public help(): Promise<void> {
+    return this._deferred(() => {
+      this.root.showHelp();
+    });
   }
 
+  /**
+   * defer callback and assign done
+   * @param cb callback to invoke
+   */
+  private _deferred(cb: () => void): Promise<void> {
+    return new Promise(resolve => {
+      this._done = resolve;
+      cb();
+    });
+  }
+
+  /**
+   * initialize a command adapter
+   */
   private _initAdapter(): CommandAdapter {
     return new CommandAdapter()
       .version(this.options.version, '-v, --version'); // set default version option
@@ -252,11 +272,12 @@ export class Program {
         instance.rawArgs = [...this._rargs];
         // invoke run with options and parsed args
         const p = instance.run.call(instance, options, ...args.slice(0, ctor.args.length));
-        if (p && p.catch) {
-          p.catch((e: any) => {
+
+        if (p && p instanceof Promise) {
+          this._done(p.catch((e: any) => {
             this._logger.error(e);
             process.exit(1);
-          });
+          }));
         } else {
           this._logger.warn(`${ctor.__canonical}::run method should return a Promise`);
         }
@@ -270,10 +291,9 @@ export class Program {
             return [arg.name, arg.description || ''];
           })));
         }
-        return instance.help();
+        instance.help();
       }
-
-      return instance && instance.help();
+      this._done();
     });
   }
 

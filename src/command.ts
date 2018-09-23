@@ -147,7 +147,7 @@ export interface CommandImplementation extends BaseCommand {
  */
 export abstract class BaseCommand {
 
-  /** reference to raw args received by the user input */
+  /** reference to raw args received by the invocation */
   public rawArgs: string[] = [];
   /** ui writer instance */
   public ui = new UI.Writer();

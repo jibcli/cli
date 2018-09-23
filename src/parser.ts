@@ -96,56 +96,59 @@ export class CLI {
    * ```
    * @param argv raw command line arguments
    */
-  public parse(argv: string[]): void {
-    // normalize arguments to parse
-    const args = this._normalizedArgs(argv.slice(2));
+  public parse(argv: string[]): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // normalize arguments to parse
+      const args = this._normalizedArgs(argv.slice(2));
 
-    // placeholder for module resolution
-    let commandModule: ICommandDefinition;
+      // placeholder for module resolution
+      let commandModule: ICommandDefinition;
 
-    // handle help & version, or special cases
-    const isHelp = args.length && /^-+h(elp)?$/.test(args[0]);
-    const isVersion = args.length && /^-+v(ersion)?$/.test(args[0]);
-    const { rootCommand } = this.program.config;
+      // handle help & version, or special cases
+      const isHelp = args.length && /^-+h(elp)?$/.test(args[0]);
+      const isVersion = args.length && /^-+v(ersion)?$/.test(args[0]);
+      const { rootCommand } = this.program.config;
 
-    if (isVersion) { // explicitly -v|--version
-      return this.program.exec(argv);
-    } else if (isHelp && !rootCommand) { // explicitly -h|--help
-      this._initHelpFromPath(this._commandRoot).help();
-      return;
-    } else {
-      // locate command according to arguments/options
-      commandModule = this._loadCommand(this._commandRoot, args) ||
-        rootCommand && this._loadCommand(this._commandRoot, [rootCommand].concat(args));
-
-      if (commandModule) {
-        // init with program
-        const { name, ctor, subcommands } = commandModule;
-
-        // register the command handler
-        if (name === rootCommand) { // single command
-          this.program.registerRoot(ctor);
-        } else {
-          this.program.registerCommand(name, ctor, subcommands);
-        }
-
-        // parse the program to invoke command run loop
-        this.program.exec(argv, this._commandPath);
+      if (isVersion) { // explicitly -v|--version
+        this.program.exec(argv);
+      } else if (isHelp && !rootCommand) { // explicitly -h|--help
+        this._initHelpFromPath(this._commandRoot).help();
       } else {
-        // arguments could not resolve a command, so proceed with help
-        this._initHelpFromPath(this._commandRoot);
-        // since args were passed, yet the command could not resolve, it's an error
-        if (args.length) {
-          // TODO: should stderr
-          this.logger.error(`Command '${args[0]}' was not found`);
-          this.help();
-          process.exit(1);
+        // locate command according to arguments/options
+        commandModule = this._loadCommand(this._commandRoot, args) ||
+          rootCommand && this._loadCommand(this._commandRoot, [rootCommand].concat(args));
+
+        if (commandModule) {
+          // init with program
+          const { name, ctor, subcommands } = commandModule;
+
+          // register the command handler
+          if (name === rootCommand) { // single command
+            this.program.registerRoot(ctor);
+          } else {
+            this.program.registerCommand(name, ctor, subcommands);
+          }
+
+          // parse the program to invoke command run loop
+          return resolve(this.program.exec(argv, this._commandPath));
         } else {
-          this.help();
+          // arguments could not resolve a command, so proceed with help
+          this._initHelpFromPath(this._commandRoot);
+          // since args were passed, yet the command could not resolve, it's an error
+          if (args.length) {
+            // TODO: should stderr
+            const err = new Error(`Command '${args[0]}' was not found`);
+            this.logger.error(err);
+            this.help();
+            process.exit(1);
+            return reject(err);
+          } else {
+            this.help();
+          }
         }
       }
-
-    }
+      resolve();
+    });
   }
 
   /**
