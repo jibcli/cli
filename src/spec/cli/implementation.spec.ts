@@ -183,6 +183,15 @@ describe('CLI', () => {
         .then(done).catch(done.fail);
       });
 
+      it('should handle options with value callback', done => {
+        testImpl('hello', ['world', '-m', 'unit', '-m', 'tester'])
+        .then(output => {
+          expect(output).toContain('Hello unit');
+          expect(output).toContain('Hello tester');
+        })
+        .then(done).catch(done.fail);
+      });
+
       it('should fail without required args', done => {
         testImpl('hello')
           .then(output => Promise.reject(`Should not have run ${output}`), e => {
@@ -192,6 +201,17 @@ describe('CLI', () => {
           .then(done).catch(done.fail);
       });
     }); // end 'hello' (top level) tests
+
+    describe('Command without async', () => {
+
+      it('should run anyway', done => {
+        // Run without promise
+        testImpl('nopromise')
+          .then(output => expect(output).toContain('Run without promise'))
+          .then(done).catch(done.fail);
+      });
+
+    });
 
     describe('Subcommands (topics)', () => {
 

@@ -3,7 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { CONSTANTS, Workspace } from '../../lib';
 
-describe('Package utilities', () => {
+describe('Workspace utilities', () => {
   const tmpdir: string = path.join(os.tmpdir(), '' + Math.random());
   beforeAll(() => fs.mkdirSync(tmpdir));
   afterAll(() => fs.remove(tmpdir));
@@ -36,6 +36,7 @@ describe('Package utilities', () => {
     mkEmptyFile('package.json');
     expect(Workspace.resolveRootDir(tmpdir)).toEqual(tmpdir);
     expect(Workspace.resolveRootDir(__dirname)).toBeTruthy();
+    expect(Workspace.resolveRootDir(os.tmpdir())).toBeNull();
   });
 
   it('should locate a project directory', () => {

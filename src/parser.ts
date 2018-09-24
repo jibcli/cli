@@ -47,7 +47,7 @@ export class CLI {
   constructor(private options?: ICLIOptions) {
     // construct options
     this.options = {
-      // location of file running the process
+      // location of application running the process
       baseDir: Workspace.resolveRootDir(),
       ...(options || {} as ICLIOptions),
     };
@@ -140,8 +140,8 @@ export class CLI {
             const err = new Error(`Command '${args[0]}' was not found`);
             this.logger.error(err);
             this.help();
+            reject(err);
             process.exit(1);
-            return reject(err);
           } else {
             this.help();
           }

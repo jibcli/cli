@@ -9,7 +9,7 @@ export interface IThrowOpts {
   allowUnknown: true,
   options: [
     {flag: '-t, --throw', description: 'throws an error'},
-  ]
+  ],
 })
 export class IThrowOpts extends BaseCommand {
   public async run(options: IThrowOpts, worlds: string[]) {

@@ -14,7 +14,7 @@ CLI framework for projects with any level of CLI command functionality.
 OK, so there's actually _some_ method to the madness... The `@jib/cli` is
 based on the extremely popular [Commander.js](https://www.npmjs.com/package/commander)
 CLI development framework. As many sailors might attest, the **_jib_** is an essential
-component to commanding their ship - thus the name.
+component to _commanding_ their ship - thus the name.
 
 > **`| jib |`:** A triangular staysail set forward of the forwardmost mast.
 

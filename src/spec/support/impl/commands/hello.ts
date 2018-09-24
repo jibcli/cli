@@ -2,6 +2,12 @@ import { Command, BaseCommand } from '../';
 
 export interface IHelloOptions {
   casual?: boolean;
+  multi?: string[];
+}
+
+function multiCb(val: any, values: string[]): any {
+  values = values || [];
+  return values.concat(val);
 }
 
 @Command({
@@ -9,16 +15,19 @@ export interface IHelloOptions {
   allowUnknown: true,
   options: [
     {flag: '-c, --casual', description: 'be casual'},
+    {flag: '-m, --multi <val>', description: 'multi option', fn: multiCb},
   ],
   args: [
     /** must provide <world...> args */
-    {name: 'world', multi: true, optional: false}
-  ]
+    {name: 'world', multi: true, optional: false},
+  ],
 })
 export class Hello extends BaseCommand {
   public async run(options: IHelloOptions, worlds: string[]) {
     if (options.casual) {
       this.ui.output('Hi!');
+    } else if (options.multi) {
+      options.multi.forEach(opt => this.ui.output(`Hello ${opt}`));
     } else {
       this.ui.output(`Hello ${worlds.join('|')}!`);
     }

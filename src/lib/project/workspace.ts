@@ -62,7 +62,8 @@ export namespace Workspace {
    */
   export function resolveRootDir(from?: string): string {
     from = from || process.mainModule.filename;
-    return path.dirname(resolveFile(from, 'package.json') || '');
+    const dir = path.dirname(resolveFile(from, 'package.json') || '');
+    return dir === '.' ? null : dir;
   }
 
   /**

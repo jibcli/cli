@@ -269,7 +269,7 @@ export class Program {
       instance = ctor && new ctor();
       if (instance) {
         // assign raw arguments
-        instance.rawArgs = [...this._rargs];
+        instance.argv = [...this._rargs];
         // invoke run with options and parsed args
         const p = instance.run.call(instance, options, ...args.slice(0, ctor.args.length));
 

@@ -183,7 +183,7 @@ export class CommandAdapter {
 
   /**
    * Show help information
-   * restricted to main cli only
+   * restricted to main adapter only
    */
   public showHelp(): CommandAdapter {
     this._ensureRoot('Help text output only available on the root adapter');

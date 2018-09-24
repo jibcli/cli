@@ -16,6 +16,18 @@ describe('Program', () => {
     })).toThrow();
   });
 
+  it('should expose static singleton', () => {
+    const program = new Program();
+    expect(Program.main() instanceof Program).toBe(true);
+  });
+
+  it('should expose version', () => {
+    const program = new Program({
+      version: '1.2.3',
+    });
+    expect(program.version).toBe(`1.2.3`);
+  });
+
   it('should support global options', () => {
     const program = new Program();
     const stub = { onOpt: null as IProgramOptionCallback<any> };
