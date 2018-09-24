@@ -152,7 +152,7 @@ is **required**.
 import { Command, BaseCommand } from '@jib/cli';
 ```
 
-|  | ¯\\_(ツ)_/¯ |
+| ref | ¯\\_(ツ)_/¯ |
 |--|--|
 | `Command` | Class decorator providing static command configuration as "annotations" |
 | `BaseCommand` | Extensible command abstract that declares the `public async run()` contract, and provides `ui` and `logger` member instantiations |
@@ -185,7 +185,7 @@ interface {
 
 | `ICommandArgument` | Type | Description | Default | Required |
 |--|--|--|--|--|
-| `name` | `string` | The argument name to be rendered in usage text | | ✅  |
+| `name` | `string` | The argument name to be rendered in usage text | `''` | ✅  |
 | `optional` | `boolean` | Indication of whether or not the argument is optional | `false` | |
 | `multi` | `boolean` | Indicate variadic argument (multiple args as one array). If `true`, then must also be the last | `false` | |
 
@@ -201,10 +201,10 @@ interface {
 
 | `ICommandOption` | Type | Description | Default | Required |
 |--|--|--|--|--|
-| `flag` | `string` | The [option flag syntax](#option-flag-syntax) | | ✅  |
+| `flag` | `string` | The [option flag syntax](#option-flag-syntax) | `null` | ✅  |
 | `description` | `string` | Option description for help rendering | `''` | |
-| `default` | `any` | Default option value | | |
-| `fn` | `((val: any, values: any) => any) | RegExp` | Value processing function, especially useful for accepting multiple values with a single flag | | |
+| `default` | `any` | Default option value | `null` | |
+| `fn` | `((val: any, values: any) => any) | RegExp` | Value processing function, especially useful for accepting multiple values with a single flag | `null` | |
 
 #### Option Flag Syntax
 
