@@ -27,15 +27,6 @@ report:
         name: Update reports
         code: |
           npm run test:report
-    # update docs
-    - script:
-        name: Generate docs
-        code: |
-          npm run docs
-    # publish gh-pages
-    - uetchy/gh-pages:
-        path: ./docs
-        token: $GH_TOKEN
 
 prepublish:
   steps:
