@@ -33,7 +33,7 @@ report:
         code: |
           npm run docs
     # publish gh-pages
-    - gh-pages:
+    - pahnev/gh-pages:
         basedir: ./docs
         branch: gh-pages
         token: $GH_TOKEN
