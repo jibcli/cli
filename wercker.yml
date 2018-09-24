@@ -33,9 +33,8 @@ report:
         code: |
           npm run docs
     # publish gh-pages
-    - pahnev/gh-pages:
-        basedir: ./docs
-        branch: gh-pages
+    - uetchy/gh-pages:
+        path: ./docs
         token: $GH_TOKEN
 
 prepublish:
