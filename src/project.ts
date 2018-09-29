@@ -10,4 +10,6 @@ export interface IProjectConfig {
   commandDir?: string;
   /** syntax delimiter for subcommands. (default is `' '`) */
   commandDelim?: string | null;
+  /** List of plugins to load globally */
+  plugins?: string[];
 }

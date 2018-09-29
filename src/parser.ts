@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { ICommandOption } from './adapter';
-import { BaseCommand, CommandImplementation, ICommandCtor, ICommandDefinition } from './command';
-import { CONSTANTS, Log, Workspace } from './lib';
+import { ICommandCtor, ICommandDefinition, isCommand } from './command';
+import { Log, Workspace } from './lib';
 import { IProgramOptionCallback, IProgramOptions, Program } from './program';
 
 /**
@@ -118,6 +118,12 @@ export class CLI {
         commandModule = this._loadCommand(this._commandRoot, args) ||
           rootCommand && this._loadCommand(this._commandRoot, [rootCommand].concat(args));
 
+        const fail = (e: Error) => {
+          this.logger.error(e);
+          reject(e);
+          process.exit(1);
+        };
+
         if (commandModule) {
           // init with program
           const { name, ctor, subcommands } = commandModule;
@@ -130,18 +136,21 @@ export class CLI {
           }
 
           // parse the program to invoke command run loop
-          return resolve(this.program.exec(argv, this._commandPath));
+          return this.program.exec(argv, this._commandPath)
+            .then(resolve)
+            .catch(fail);
         } else {
           // arguments could not resolve a command, so proceed with help
-          this._initHelpFromPath(this._commandRoot);
+          let err: Error;
+          try {
+            this._initHelpFromPath(this._commandRoot);
+          } catch (e) { err = e; }
           // since args were passed, yet the command could not resolve, it's an error
           if (args.length) {
             // TODO: should stderr
-            const err = new Error(`Command '${args[0]}' was not found`);
-            this.logger.error(err);
+            err = err || new Error(`Command '${args[0]}' was not found`);
             this.help();
-            reject(err);
-            process.exit(1);
+            fail(err);
           } else {
             this.help();
           }
@@ -163,35 +172,9 @@ export class CLI {
    * Resolve configurations and initialize the main program.
    */
   private _initProgram(): Program {
-    const { baseDir, ...programOpts } = this.options;
-
-    // resolve package.json
-    let pkgJson: any;
-    try {
-      pkgJson = Workspace.getPackageJson(baseDir);
-    } catch (e) {
-      throw new Error(`Invalid project: '${baseDir}'`);
-    }
-
-    // read config from pack json
-    const pkgJsonConfig = pkgJson[CONSTANTS.PKG_CONFIG_KEY] || {};
-
-    // resolve command directory & update config
-    let commandDir = pkgJsonConfig.commandDir || CONSTANTS.COMMAND_DIRECTORY;
-    const resolvedDir = Workspace._resolveCommandDir(baseDir, commandDir);
-    this.options.commandDir = commandDir = resolvedDir;
-    if (!resolvedDir) {
-      throw new Error(`Unable to resolve command directory '${commandDir}' in '${baseDir}`);
-    }
-
-    // init program with full options
-    return new Program({
-      version: pkgJson.version, // default version from package.json
-      ...pkgJsonConfig, // add from package json
-      ...programOpts, // add the options manually provided as overrides
-      commandDir, // use resolved commandDirectory
-    });
-
+    const options = Workspace.resolveConfig(this.options);
+    this.options.commandDir = options.commandDir;
+    return new Program(options);
   }
 
   /**
@@ -226,10 +209,9 @@ export class CLI {
         // if valid ctor is found, then we can instantiate
         if (ctor) {
           const cmdPath = args.slice(0, i + 1);
-          const argsTail = args.slice(i + 1);
           command = {
-            args: argsTail,
             ctor,
+            file: cmdFilePath,
             name: cmdPath.join(commandDelim),
             tree: cmdPath,
           };
@@ -303,12 +285,12 @@ export class CLI {
    * resolve an exported command from module exports
    * @param mod a module loaded with require()
    */
-  private _extractCommandCtor(mod: any): ICommandCtor<CommandImplementation> {
-    let ctor: ICommandCtor<CommandImplementation>;
-    if (!(mod.prototype instanceof BaseCommand)) { // export class Foo ...
+  private _extractCommandCtor(mod: any): ICommandCtor {
+    let ctor: ICommandCtor;
+    if (!isCommand(mod)) { // as in case of multiple exports: export class Foo ...
       // iterate exports to find command class
       for (const exp in mod) {
-        if (mod[exp].prototype && mod[exp].prototype instanceof BaseCommand) {
+        if (isCommand(mod[exp])) {
           ctor = mod[exp];
           break;
         }
@@ -336,7 +318,6 @@ export class CLI {
         const syntax = cmdPath
           .concat(result.name)
           .join(commandDelim);
-        // this.logger.debug('help init', cmdName, result.location);
 
         if (result.stats.isDirectory()) {
           // check and skip if file by same name as directory exists

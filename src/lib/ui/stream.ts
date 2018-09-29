@@ -63,7 +63,7 @@ export class OutputStream {
    */
   protected _format(msg: TOutputMessage): any {
     if (msg instanceof Error) {
-      return msg;
+      return msg.message;
     } else if (typeof msg === 'object') {
       try {
         return JSON.stringify(msg, null, 2);

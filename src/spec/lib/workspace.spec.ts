@@ -73,11 +73,13 @@ describe('Workspace utilities', () => {
     expect(~list.indexOf(tests.subdir)).toBeTruthy('a subdirectory was excluded');
   });
 
-  it('should resolve a command directory', () => {
+  it('should resolve a project configuration', () => {
     let testImplDir: string;
     testImplDir = path.resolve(__dirname, '..', 'support', 'impl');
-
-    expect(Workspace._resolveCommandDir(testImplDir, 'commands')).toEqual('commands');
+    const config = Workspace.resolveConfig({
+      baseDir: testImplDir,
+    });
+    expect(config.commandDir).toEqual('commands');
   });
 
 });

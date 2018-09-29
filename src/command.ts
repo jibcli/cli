@@ -1,5 +1,7 @@
 import { ICommandArgument, ICommandOption } from './adapter';
-import { Log, UI } from './lib';
+import { /*Extensible,*/ Log, UI } from './lib';
+import { ICtor, isCtor } from './lib/ctor';
+import { GetToken } from './lib/token';
 
 /**
  * Definition for a parsed command implementation
@@ -8,17 +10,17 @@ import { Log, UI } from './lib';
 export interface ICommandDefinition {
   name: string;
   tree: string[];
-  args?: string[];
-  ctor?: ICommandCtor<CommandImplementation>;
+  file?: string;
+  ctor?: ICommandCtor;
   subcommands?: ICommandDefinition[];
 }
 
 /**
- * Annotations object for the Command implementation decorator
+ * Annotation metadata for the Command implementation decorator
  */
-export interface ICommand {
+export interface Command {
   /**
-   * Describe what the command does
+   * Describes what the command does for help rendering
    */
   description: string;
   /**
@@ -56,7 +58,7 @@ export interface ICommand {
 }
 
 /**
- * Command Implementation class decorator
+ * Command Implementation decorator factory
  *
  * ```typescript
  * @Command({
@@ -76,63 +78,56 @@ export interface ICommand {
  * ```
  * @param annotations decorator annotation object
  */
-export function Command(annotations: ICommand): (ctor: any) => any { // decorator factory
-  return <T extends ICommandCtor<CommandImplementation>>(ctor: T) => { // class decorator
-    const { hidden, description, args, options, allowUnknown } = annotations;
-    // extend the decorated class ctor
-    ctor.__canonical = ctor.name;
-    class CommandImpl extends ctor {
-      // use annotations to seed static properties for reading without initializing
-      public static readonly hidden = hidden;
-      public static readonly description = description;
-      public static readonly args: ICommandArgument[] = args || [];
-      public static readonly options: ICommandOption[] = options || [];
-      public static readonly allowUnknown: boolean = null == allowUnknown ? false : true;
-      // set ivars for use upstream
-      protected readonly _name = ctor.name;
-
-      /**
-       * Command specific help text emitter.
-       * Implementations must write the text as well
-       */
-      public help(): void {
-        return super.help && super.help();
-      }
-
-    }
-
-    return CommandImpl;
+export function Command(annotations: Command): (ctor: any) => any { // decorator factory
+  return <T extends ICommandCtor>(ctor: T): T => { // class decorator
+    CommandRegistry.set(ctor, annotations);
+    return ctor;
   };
 }
 
 /**
  * Interface for the decorated command implementation constructor
  */
-export interface ICommandCtor<T extends BaseCommand> {
-  hidden: boolean;
-  description: string;
-  args: ICommandArgument[];
-  options: ICommandOption[];
-  allowUnknown: boolean;
-  ctor: ICommandCtor<T>;
-  __canonical: string;
-  new (...args: any[]): T;
+export interface ICommandCtor extends ICtor<ICommand> {
 }
 
 /**
  * Interface to denote an implementation of required abstract
  * methods in BaseCommand
  */
-export interface CommandImplementation extends BaseCommand {
+export interface ICommand extends BaseCommand {
   help?(): void;
   run(options: any, ...args: any[]): Promise<any>;
 }
 
+/**
+ * A reference of commands and their annotation metadata
+ * @internal
+ */
+const CommandRegistry = new Map<ICommandCtor, Command>();
 
 /**
- * Command abstract which all implementations should extend.
- * This allows the parser to detect Command implementations,
- * and provides a layer of abstraction for `ui` and `logger` instantiation.
+ * Test an object for type
+ * @param type object to check against registry
+ * @internal
+ */
+export const isCommand = (type: any): type is ICommandCtor => isCtor(type) && CommandRegistry.has(type);
+
+/**
+ * Gets annotation metadata for a command from its constructor
+ * @param ctor a command constructor
+ * @internal
+ */
+export const getCommandMeta = (ctor: ICommandCtor): Command => CommandRegistry.get(ctor);
+
+/**
+ * The token for extensibility of the base command
+ */
+export const COMMAND_TOKEN = GetToken('command');
+/**
+ * Command abstract defining the implementation contract,
+ * which all implementations _should_ extend.
+ * It also provides a layer of abstraction for `ui` and `logger` members.
  *
  * ```typescript
  * @Command({
@@ -145,22 +140,24 @@ export interface CommandImplementation extends BaseCommand {
  * }
  * ```
  */
-export abstract class BaseCommand {
+// @Extensible<BaseCommand>(COMMAND_TOKEN, {
+//   restricted: ['ui'],
+//   args: self => self,
+// })
+export abstract class BaseCommand implements ICommand {
 
   /** reference to raw args used in the invocation */
   public argv: string[] = [];
   /** ui writer instance */
   public ui = new UI.Writer();
   /** logging instance */
-  public logger: Log.Logger = new Log.Logger({
-    name: (this.constructor as ICommandCtor<CommandImplementation>).__canonical,
-  });
+  public logger: Log.Logger = new Log.Logger({ name: this.constructor.name });
 
   /**
    * Command action runner.
    * @param options Parsed options for the command invocation
    * @param args Any arguments passed to the command
    */
-  public abstract async run(options: any, ...args: any[]): Promise<any>;
+  public abstract async run(options: object, ...args: any[]): Promise<any>;
 
 }

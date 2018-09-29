@@ -145,8 +145,8 @@ the [run method](#the-run-method) section.
 ### `Command` and `BaseCommand`
 
 The first line of most commands will import two objects from `@jib/cli`. These
-objects are the foundation of any command implementation, and the use of each
-is **required**.
+objects represent the foundation of any command implementation, however only the
+use of `Command` is required.
 
 ```typescript
 import { Command, BaseCommand } from '@jib/cli';
@@ -155,7 +155,7 @@ import { Command, BaseCommand } from '@jib/cli';
 | ref | ¯\\_(ツ)_/¯ |
 |--|--|
 | `Command` | Class decorator providing static command configuration as "annotations" |
-| `BaseCommand` | Extensible command abstract that declares the `public async run()` contract, and provides `ui` and `logger` member instantiations |
+| `BaseCommand` | Extensible command abstract that declares the `public async run()` contract, and provides `ui` and `logger` member instantiations - use is optional |
 
 ### `@Command` decorator
 
@@ -175,7 +175,8 @@ export class MyCommand extends BaseCommand { /* see below*/ }
 ### Command Arguments
 
 As part of the `@Command` annotations, `args` are specified as an array of
-argument definitions where `ICommandArgument`
+argument definitions where `ICommandArgument` represents a single argument
+definition.
 
 ```typescript
 interface {
@@ -242,18 +243,23 @@ must do according to its user's wishes. Hmm... sort of like a genie. All the
 program needs is for this method to return a `Promise`.
 
 As is shown in the call signature above, the first argument will be the resolved
-`options` as defined in the decorator. Note that each option key is the long,
-camelCased option name (unless using the `--no` prefix as mentioned).
+`options` as defined in the decorator. Note that each property key will be
+defined as the long, camelCased option name (unless using the `--no` prefix as mentioned).
 
 Then, all resolved `args` will be passed in the order which they are defined,
-again in the decorator. Note that if an argument is declared as `multi: true`,
+again by using the decorator. Note that if an argument is declared as `multi: true`,
 then its value will be the final argument, and of type `string[]`.
+
+## Plugins
+
+Support for plugins is in it's early stages. Once stable, more information will
+be added here. Stay tuned...
 
 ## TypeScript
 
-This package is designed to embody the many benefits of using TypeScript, and
+This project is designed to embody the many benefits of using TypeScript, and
 recommends that users do the same. While vanilla JS is _technically_ possible,
-it is not supported at this time.
+it is not officially supported at this time.
 
 ## TODOs
 
@@ -266,7 +272,7 @@ it is not supported at this time.
 - [ ] Add support for custom text additions on `-v|--version` (copyright, foo, etc.)
 - [ ] Add support for command mispellings
 - [ ] Add support for command aliases
-- [ ] Add support for plugins
+- [x] Add support for plugins
   - [ ] Yeoman generator framework `@jib/cli-codegen`
   - [ ] Config Storage framework `@jib/cli-storage`
   - [ ] Prompting `@jib/cli-prompt`
