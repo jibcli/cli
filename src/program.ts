@@ -1,7 +1,6 @@
 import { CommandAdapter, IAdapterOptionCallback, ICommandOption } from './adapter';
 import { getCommandMeta, ICommand, ICommandCtor, ICommandDefinition } from './command';
 import { CONSTANTS, Log, UI } from './lib';
-import { PluginManager } from './lib/plugin/manager';
 import { IProjectConfig } from './project';
 
 /**
@@ -238,8 +237,7 @@ export class Program {
    * register plugins with the plugin manager
    */
   private _registerPlugins(): void {
-    const { plugins } = this.config;
-    PluginManager.register(plugins);
+    /** noop for now */
   }
 
   /**
