@@ -22,8 +22,9 @@ export interface IPluginRecord<T> extends IPluginProvider<T> {
 
 /**
  * Map of registered plugin objects
+ * @internal
  */
-const PluginRegistry = new Map<ProviderToken, IPluginRecord<any>>();
+export const PluginRegistry = new Map<ProviderToken, IPluginRecord<any>>();
 
 /**
  * @Provide decorator factory
@@ -73,7 +74,7 @@ export function Plugin(token: ProviderToken, ...args: any[]): any {
     if (isCtor(target)) {
       /**
        * In the TypeScript specification
-       * > The return value of the parameter decorator is ignored.
+       * >>> The return value of the parameter decorator is ignored.
        * BUT if we decorate the class itself, then we can assign static properties
        * and perform constructor overrides in the extension of the class
        */
