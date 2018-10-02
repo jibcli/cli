@@ -1,5 +1,5 @@
 import { CommandAdapter, IAdapterOptionCallback, ICommandOption } from './adapter';
-import { CommandImplementation, ICommandCtor, ICommandDefinition } from './command';
+import { getCommandMeta, ICommand, ICommandCtor, ICommandDefinition } from './command';
 import { CONSTANTS, Log, UI } from './lib';
 import { IProjectConfig } from './project';
 
@@ -30,9 +30,10 @@ export class Program {
   // define ivars
   public root: CommandAdapter;
   private _ui = new UI.Writer();
-  private _logger = new Log.Logger();
+  private _logger = new Log.Logger({ name: this.constructor.name });
   private _rargs: string[];
   private _done: (value?: void | PromiseLike<void>) => void;
+  private _err: (err: Error) => void;
 
   /**
    * Create the program executor
@@ -46,6 +47,9 @@ export class Program {
     if (this.options.commandDelim.length !== 1) {
       throw new Error(`Invalid delimiter '${this.options.commandDelim}'. Must have length == 1`);
     }
+
+    // register plugins
+    this._registerPlugins();
 
     // create main cli adapter
     this.root = this._initAdapter();
@@ -76,17 +80,17 @@ export class Program {
    */
   public registerCommandHelp(
     syntax: string,
-    ctor?: ICommandCtor<CommandImplementation>,
+    ctor?: ICommandCtor,
     subcommands?: ICommandDefinition[]): CommandAdapter {
     // this._logger.debug(`Registering help with syntax '${syntax}'`);
-    return !(ctor && ctor.hidden) ? this.registerCommand(syntax, ctor, subcommands) : null;
+    return !(ctor && getCommandMeta(ctor).hidden) ? this.registerCommand(syntax, ctor, subcommands) : null;
   }
 
   /**
    * Register a class as the handler for the root command
    * @param ctor The root command "default" implementation
    */
-  public registerRoot(ctor?: ICommandCtor<CommandImplementation>): CommandAdapter {
+  public registerRoot(ctor?: ICommandCtor): CommandAdapter {
     this._applyCommandMeta(this.root, ctor);
     this._attachHandlers(this.root, ctor);
     return this.root;
@@ -100,7 +104,7 @@ export class Program {
    * it is assumed subcommands exist so '<subcommand>' will be used
    */
   public registerCommand(
-    syntax: string, ctor?: ICommandCtor<CommandImplementation>, subcommands?: ICommandDefinition[]): CommandAdapter {
+    syntax: string, ctor?: ICommandCtor, subcommands?: ICommandDefinition[]): CommandAdapter {
     // this._logger.debug(`Registering command with syntax '${syntax}'`);
     const { commandDelim } = this.config;
 
@@ -112,14 +116,13 @@ export class Program {
       this._applyCommandMeta(child, ctor);
 
     } else if (subcommands) {
-      // child = this._command(`${syntax}${commandDelim}<subcommand>`);
+
       if (subcommands.length) {
         child = this._command(syntax);
         // subcommands exist, so we can register them with the adapter
         subcommands.forEach((sub: ICommandDefinition) => {
-          // child.subcommand(`${commandDelim}${sub.name}`, sub.ctor ? sub.ctor.description : null);
-          // this._logger.debug(`Registering subcommand '${sub.name}'`);
-          child.subcommand(sub.name, sub.ctor ? sub.ctor.description : '...');
+          const desc = sub.ctor ? getCommandMeta(sub.ctor).description : '...';
+          child.subcommand(sub.name, desc);
         });
       } else {
         // subcommands stubbed only
@@ -215,8 +218,9 @@ export class Program {
    * @param cb callback to invoke
    */
   private _deferred(cb: () => void): Promise<void> {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       this._done = resolve;
+      this._err = reject;
       cb();
     });
   }
@@ -226,7 +230,14 @@ export class Program {
    */
   private _initAdapter(): CommandAdapter {
     return new CommandAdapter()
-      .version(this.options.version, '-v, --version'); // set default version option
+      .version(this.version, '-v, --version'); // set default version option
+  }
+
+  /**
+   * register plugins with the plugin manager
+   */
+  private _registerPlugins(): void {
+    /** noop for now */
   }
 
   /**
@@ -244,11 +255,12 @@ export class Program {
    * @param adapter adapter to which command is bound
    * @param ctor command constructor
    */
-  private _applyCommandMeta(adapter: CommandAdapter, ctor: ICommandCtor<CommandImplementation>): CommandAdapter {
-    adapter.description(ctor.description)
-      .arguments(...ctor.args) // set argument syntax
-      .option(...ctor.options) // apply options
-      .allowUnknown(ctor.allowUnknown);
+  private _applyCommandMeta(adapter: CommandAdapter, ctor: ICommandCtor): CommandAdapter {
+    const meta = getCommandMeta(ctor);
+    adapter.description(meta.description)
+      .arguments(...(meta.args || [])) // set argument syntax
+      .option(...(meta.options || [])) // apply options
+      .allowUnknown(meta.allowUnknown);
     return adapter;
   }
 
@@ -259,39 +271,45 @@ export class Program {
    * @param subcommands Any subcommands
    */
   private _attachHandlers(
-    adapter: CommandAdapter, ctor?: ICommandCtor<CommandImplementation>, subcommands?: ICommandDefinition[]): void {
+    adapter: CommandAdapter, ctor?: ICommandCtor, subcommands?: ICommandDefinition[]): void {
     // initialize with command class
-    let instance: CommandImplementation;
+    let instance: ICommand;
+    const meta = getCommandMeta(ctor);
 
     // assign action while slicing non-interpreted args from command path
     adapter.invocation((options: any, ...args: any[]) => {
       // instantiate and call
-      instance = ctor && new ctor();
+      this._logger.debug(`Will instantiate command ${adapter.syntax || ''}`);
+      try {
+        instance = ctor && new ctor();
+        this._logger.debug(`Instantiate command ${adapter.syntax || ''}`);
+      } catch (e) {
+        return this._err(e);
+      }
       if (instance) {
         // assign raw arguments
         instance.argv = [...this._rargs];
+        const argL: number = (meta.args || []).length;
         // invoke run with options and parsed args
-        const p = instance.run.call(instance, options, ...args.slice(0, ctor.args.length));
+        const p = instance.run.call(instance, options, ...args.slice(0, argL));
 
         if (p && p instanceof Promise) {
-          this._done(p.catch((e: any) => {
-            this._logger.error(e);
-            process.exit(1);
-          }));
+          p.then(this._done).catch(this._err);
         } else {
-          this._logger.warn(`${ctor.__canonical}::run method should return a Promise`);
+          this._logger.warn(`${ctor.name}::run method should return a Promise`);
         }
       }
 
     }).onHelp(() => {
       instance = ctor && new ctor();
       if (instance) {
-        if (ctor.args.length) {
-          this._ui.outputSection(`Arguments`, this._ui.grid(ctor.args.map(arg => {
+        if (meta.args && meta.args.length) {
+          this._ui.outputSection(`Arguments`, this._ui.grid(meta.args.map(arg => {
             return [arg.name, arg.description || ''];
           })));
         }
-        instance.help();
+        // tslint:disable-next-line:no-unused-expression
+        return this._done(instance.help && instance.help());
       }
       this._done();
     });

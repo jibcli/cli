@@ -5,6 +5,7 @@ import { CONSTANTS, Workspace } from '../../lib';
 
 describe('Workspace utilities', () => {
   const tmpdir: string = path.join(os.tmpdir(), '' + Math.random());
+  const testImplDir: string = path.resolve(__dirname, '..', 'support', 'impl');
   beforeAll(() => fs.mkdirSync(tmpdir));
   afterAll(() => fs.remove(tmpdir));
 
@@ -73,11 +74,29 @@ describe('Workspace utilities', () => {
     expect(~list.indexOf(tests.subdir)).toBeTruthy('a subdirectory was excluded');
   });
 
-  it('should resolve a command directory', () => {
-    let testImplDir: string;
-    testImplDir = path.resolve(__dirname, '..', 'support', 'impl');
+  it('should resolve a project configuration', () => {
+    const config = Workspace.resolveConfig({
+      baseDir: testImplDir,
+    });
+    expect(config.commandDir).toEqual('commands');
+    expect(Workspace.resolveConfig()).toEqual(config);
+  });
 
-    expect(Workspace._resolveCommandDir(testImplDir, 'commands')).toEqual('commands');
+  it('should resolve commands directory', () => {
+    const c = Workspace.resolveConfig({ baseDir: testImplDir });
+    expect(c.commandDir).toEqual('commands');
+  });
+
+  it('should throw invalid project', () => {
+    expect(() => Workspace.resolveConfig({ /* this root */ })).toThrow();
+  });
+
+  it('should expose commandsRoot', () => {
+    const config = Workspace.resolveConfig({
+      baseDir: testImplDir,
+    });
+    expect(Workspace.commandsRoot()).toContain(testImplDir);
+    expect(Workspace.commandsRoot()).toContain('commands');
   });
 
 });

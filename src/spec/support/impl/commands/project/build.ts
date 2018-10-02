@@ -1,7 +1,7 @@
 import { Command, BaseCommand } from '../../';
 
 @Command({
-  description: 'Build a project'
+  description: 'Build a project',
 })
 export class Build extends BaseCommand {
 
