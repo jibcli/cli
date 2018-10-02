@@ -1,5 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { ICLIOptions } from '../../parser';
+import { CONSTANTS } from '../constants';
 
 /**
  * CLI Workspace utilities
@@ -86,14 +88,14 @@ export namespace Workspace {
   }
 
   /**
-   * Resolve the specified `commandDir` for the program/parser
+   * Resolve the specified `commandDir` for the program/parser as a relative path
    * It is common for the `"commandDir"` to be a "build/commands" path to the
    * eventual transpiled outputs. When running in development, we use `ts-node`
    * and `tsconfig.json` to resolve the source commands directory.
    * @param commandDir the expected command directory
    * @internal
    */
-  export function _resolveCommandDir(baseDir: string, commandDir: string): string {
+  function _resolveCommandDir(baseDir: string, commandDir: string): string {
 
     // ensure command dir exists... otherwise try delegate to ts source
     if (fs.existsSync(path.join(baseDir, commandDir))) {
@@ -124,5 +126,58 @@ export namespace Workspace {
 
   }
 
+  /**
+   * get the absolute directory of the workspace commands
+   */
+  export function commandsRoot(): string {
+    const { baseDir, commandDir } = resolveConfig();
+    return path.join(baseDir, commandDir);
+  }
+
+  // basic store for resolved configuration
+  let _config: ICLIOptions;
+
+  /**
+   * Resolves CLI configuration object for the main parser/program.
+   * Note that by exposing this function, a caller might obtain different props
+   * If called with different options than the main program.
+   * @param options options propagated by parser or program implementation
+   */
+  export function resolveConfig(options?: ICLIOptions): ICLIOptions {
+    if (_config && !options) { // use cache
+      return _config;
+    }
+    const { baseDir, ...other } = options;
+    const root = baseDir || resolveRootDir();
+
+    // resolve package.json
+    let pkgJson: any;
+    try {
+      pkgJson = getPackageJson(root);
+    } catch (e) {
+      throw new Error(`Invalid project: '${root}'`);
+    }
+
+    // read config from package.json
+    const pkgJsonConfig = pkgJson[CONSTANTS.PKG_CONFIG_KEY] || {};
+
+    // resolve command directory & update config
+    let commandDir = pkgJsonConfig.commandDir || CONSTANTS.COMMAND_DIRECTORY;
+    const resolvedDir = _resolveCommandDir(root, commandDir);
+    commandDir = resolvedDir;
+    if (!resolvedDir) {
+      throw new Error(`Unable to resolve command directory '${commandDir}' in '${root}`);
+    }
+
+    // init program with full options
+    _config = <ICLIOptions>{
+      baseDir: root,
+      version: pkgJson.version, // default version from package.json
+      ...pkgJsonConfig, // add from package json
+      ...other, // add the options manually provided as overrides
+      commandDir, // use resolved commandDirectory
+    };
+    return _config;
+  }
 
 }

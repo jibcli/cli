@@ -60,7 +60,7 @@ describe('UI features', () => {
       const spy = spyOn(mockStream, 'write');
       const e = new Error('foo');
       ui.write(e);
-      expect(spy.calls.first().args[0]).toEqual(e.toString());
+      expect(spy.calls.first().args[0]).toEqual(e.message);
     });
 
     it('should write objects', () => {

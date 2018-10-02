@@ -27,16 +27,6 @@ report:
         name: Update reports
         code: |
           npm run test:report
-    # update docs
-    - script:
-        name: Generate docs
-        code: |
-          npm run docs
-    # publish gh-pages
-    - pahnev/gh-pages:
-        basedir: ./docs
-        branch: gh-pages
-        token: $GH_TOKEN
 
 prepublish:
   steps:
