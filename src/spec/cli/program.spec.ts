@@ -1,6 +1,10 @@
 import { IProgramOptionCallback, Program } from '../../';
 import { CONSTANTS } from '../../lib';
 
+const noopUi = (program: Program) => {
+  return spyOn(program['_ui'], 'write').and.callFake(() => program['_ui']); // prevent ui writes
+};
+
 describe('Program', () => {
 
   it('should support default options', () => {
@@ -14,11 +18,6 @@ describe('Program', () => {
     expect(() => new Program({
       commandDelim: '::',
     })).toThrow();
-  });
-
-  it('should expose static singleton', () => {
-    const program = new Program();
-    expect(Program.main() instanceof Program).toBe(true);
   });
 
   it('should expose version', () => {
@@ -46,7 +45,7 @@ describe('Program', () => {
     const program = new Program();
     spyOn(program.root, 'onHelp') // stub help parsed
       .and.callFake((cb: () => void) => cb());
-    const uispy = spyOn(program['_ui'], 'write');
+    const uispy = noopUi(program);
 
     program.globalHelp('Examples', 'help text');
     expect(uispy).toHaveBeenCalledWith(jasmine.stringMatching(/examples\:[\S\s]+help/i));
@@ -58,23 +57,12 @@ describe('Program', () => {
     expect(uispy).toHaveBeenCalledWith(jasmine.stringMatching('body help'));
   });
 
-  it('should delegate help to the adapter', () => {
+  it('should delegate help to the collector', () => {
     const program = new Program();
-    spyOn(program.root, 'showHelp');
+    noopUi(program);
+    spyOn(program.root, 'usage').and.callThrough();
     program.help();
-    expect(program.root.showHelp).toHaveBeenCalled();
-  });
-
-  it('should delegate exec to the adapter', () => {
-    const program = new Program();
-    spyOn(program.root, 'exec');
-    program.exec([]);
-    expect(program.root.exec).toHaveBeenCalled();
-  });
-
-  it('should error when exec called on non-root adapter', () => {
-    const program = new Program();
-    expect(() => program.root.subcommand('fail').exec([])).toThrow();
+    expect(program.root.usage).toHaveBeenCalled();
   });
 
 });

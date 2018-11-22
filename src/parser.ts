@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { ICommandOption } from './adapter';
-import { ICommandCtor, ICommandDefinition, isCommand } from './command';
-import { Log, Workspace } from './lib';
+
+import { ICommandCtor, ICommandDefinition, ICommandOption, isCommand } from './command';
+import { Log, SPACE, Workspace } from './lib';
 import { IProgramOptionCallback, IProgramOptions, Program } from './program';
 
 /**
@@ -26,7 +26,7 @@ export interface ICLIOptions extends IProgramOptions {
  */
 export class CLI {
 
-  public logger = new Log.Logger();
+  public logger = new Log.Logger({name: this.constructor.name});
   public program: Program;
 
   private _arity: number;
@@ -35,7 +35,7 @@ export class CLI {
   /**
    * Creates a new CLI parser instance
    *
-   * ```typescript
+   * ```ts
    * const cli = new CLI({
    *   baseDir: __dirname,
    *   commandDir: './relative/path/to/my/command/impls',
@@ -86,7 +86,7 @@ export class CLI {
    * Main execution method.
    * Parse arguments from the command line and run the program.
    *
-   * ```typescript
+   * ```ts
    * import { CLI } from '@jib/cli';
    *
    * const parser = new CLI({
@@ -99,64 +99,97 @@ export class CLI {
   public parse(argv: string[]): Promise<void> {
     return new Promise((resolve, reject) => {
       // normalize arguments to parse
-      const args = this._normalizedArgs(argv.slice(2));
+      const rargs = this._normalizedArgs(argv.slice(2));
+      const args = this.program.root.argShift(rargs);
+      const fail = (e: Error) => {
+        this.logger.error(e);
+        this.logger.debug(e.stack);
+        reject(e);
+        process.exit(1);
+      };
+
+      const { rootCommand } = this.program.config;
 
       // placeholder for module resolution
       let commandModule: ICommandDefinition;
 
-      // handle help & version, or special cases
-      const isHelp = args.length && /^-+h(elp)?$/.test(args[0]);
-      const isVersion = args.length && /^-+v(ersion)?$/.test(args[0]);
-      const { rootCommand } = this.program.config;
+      // locate command according to arguments/options
+      commandModule = this._locateCommand(this._commandRoot, args) ||
+        rootCommand && this._locateCommand(this._commandRoot, [rootCommand].concat(args));
 
-      if (isVersion) { // explicitly -v|--version
-        this.program.exec(argv);
-      } else if (isHelp && !rootCommand) { // explicitly -h|--help
-        this._initHelpFromPath(this._commandRoot).help();
-      } else {
-        // locate command according to arguments/options
-        commandModule = this._loadCommand(this._commandRoot, args) ||
-          rootCommand && this._loadCommand(this._commandRoot, [rootCommand].concat(args));
-
-        const fail = (e: Error) => {
-          this.logger.error(e);
-          reject(e);
-          process.exit(1);
-        };
-
-        if (commandModule) {
-          // init with program
-          const { name, ctor, subcommands } = commandModule;
-
-          // register the command handler
-          if (name === rootCommand) { // single command
-            this.program.registerRoot(ctor);
-          } else {
-            this.program.registerCommand(name, ctor, subcommands);
-          }
-
-          // parse the program to invoke command run loop
-          return this.program.exec(argv, this._commandPath)
-            .then(resolve)
-            .catch(fail);
+      if (commandModule) {
+        const { name, tree, ctor, subcommands } = commandModule;
+        // register the command handler
+        if (name === rootCommand) { // single command
+          this.program.registerRoot(ctor);
         } else {
-          // arguments could not resolve a command, so proceed with help
-          let err: Error;
-          try {
-            this._initHelpFromPath(this._commandRoot);
-          } catch (e) { err = e; }
-          // since args were passed, yet the command could not resolve, it's an error
-          if (args.length) {
-            // TODO: should stderr
-            err = err || new Error(`Command '${args[0]}' was not found`);
-            this.help();
-            fail(err);
-          } else {
-            this.help();
-          }
+          this.program.registerCommand(tree, ctor, subcommands);
         }
+      } else if (args.length) {
+        return fail(new Error(`Command '${args[0]}' was not found`));
+      } else {
+        // help | version
+        this._initHelp(this._commandRoot);
       }
-      resolve();
+
+      // parse the program to invoke command run loop
+      return this.program.exec(rargs, this._commandPath)
+        .then(resolve)
+        .catch(fail);
+
+      // if (isVersion) { // explicitly -v|--version
+      //   this.program.exec(rargs);
+      // } else if (isHelp && !rootCommand) { // explicitly -h|--help
+      //   // this._initHelp(this._commandRoot).help();
+      // } else {
+      //   // locate command according to arguments/options
+      //   commandModule = this._locateCommand(this._commandRoot, args) ||
+      //     rootCommand && this._locateCommand(this._commandRoot, [rootCommand].concat(args));
+
+      //   const fail = (e: Error) => {
+      //     this.logger.error(e);
+      //     reject(e);
+      //     process.exit(1);
+      //   };
+
+      //   if (commandModule) {
+      //     // init with program
+      //     const { name, ctor, subcommands } = commandModule;
+
+      //     // register the command handler
+      //     if (name === rootCommand) { // single command
+      //       this.program.registerRoot(ctor);
+      //     } else {
+      //       this.program.registerCommand(name, ctor, subcommands);
+      //     }
+
+      //     // // parse the program to invoke command run loop
+      //     // return this.program.exec(rargs, this._commandPath)
+      //     //   .then(resolve)
+      //     //   .catch(fail);
+      //   } else {
+      //     this.logger.debug(`No command could be resolved`);
+      //     // arguments could not resolve a command, so proceed with help
+      //     let err: Error;
+      //     try {
+      //       this._initHelp(this._commandRoot);
+      //     } catch (e) { err = e; }
+      //     // since args were passed, yet the command could not resolve, it's an error
+      //     if (args.length) {
+      //       // TODO: should stderr
+      //       err = err || new Error(`Command '${args[0]}' was not found`);
+      //       this.help();
+      //       fail(err);
+      //     } else {
+      //       this.help();
+      //     }
+      //   }
+      //   // parse the program to invoke command run loop
+      //   return this.program.exec(rargs, this._commandPath)
+      //     .then(resolve)
+      //     .catch(fail);
+      // }
+      // resolve();
     });
   }
 
@@ -191,8 +224,7 @@ export class CLI {
    * @param dir directory where to load
    * @param args argument list to detect command
    */
-  private _loadCommand(dir: string, args: string[]): ICommandDefinition {
-    const { commandDelim } = this.program.config;
+  private _locateCommand(dir: string, args: string[]): ICommandDefinition {
 
     let i = args.length;
     let command: ICommandDefinition;
@@ -200,7 +232,9 @@ export class CLI {
     while (i--) {
       // find command at argument path
       const cmdFilePath = path.join(dir, ...args.slice(0, i + 1));
-      // this.logger.debug(`Attempt load ${cmdFilePath}`);
+      const cmdPath = args.slice(0, i + 1);
+      const name = args[i];
+      this.logger.debug(`Attempt load ${cmdFilePath}`);
       let mod: any;
       try { // require() fails for nonsensical paths
         mod = require(cmdFilePath);
@@ -208,11 +242,10 @@ export class CLI {
 
         // if valid ctor is found, then we can instantiate
         if (ctor) {
-          const cmdPath = args.slice(0, i + 1);
           command = {
+            name,
             ctor,
             file: cmdFilePath,
-            name: cmdPath.join(commandDelim),
             tree: cmdPath,
           };
           break;
@@ -221,16 +254,14 @@ export class CLI {
 
       if (!mod && fs.existsSync(cmdFilePath)) {
         if (fs.statSync(cmdFilePath).isDirectory()) {
-
           // NOTE: Cannot register all sub commands because they will overwrite each other.
           // file does not exist, but directory does, so a command is synthesized
           // to register subcommand options
-          const cmdPath = args.slice(0, i + 1);
           // this.logger.debug(`Command directory: ${cmdPath.join(commandDelim)}`)
           command = {
-            name: cmdPath.join(commandDelim),
-            subcommands: this._scanSubcommands(cmdFilePath, cmdPath),
+            name,
             tree: cmdPath,
+            subcommands: this._scanSubcommands(cmdFilePath, cmdPath),
           };
 
           break;
@@ -270,7 +301,7 @@ export class CLI {
       .map(({name, location, stats}) => {
         const def: ICommandDefinition = {
           name,
-          tree: ancestry.slice().concat(name),
+          tree: [...ancestry, name],
         };
         if (stats.isFile()) {
           def.ctor = this._extractCommandCtor(require(location));
@@ -307,23 +338,19 @@ export class CLI {
    * @param dir directory of commands
    * @param parent parent command list
    */
-  private _initHelpFromPath(dir: string, parent?: string[]): CLI {
+  private _initHelp(dir: string, parent?: string[]): CLI {
 
-    const { commandDelim } = this.program.config;
-
-    const cmdPath: string[] = [].concat(parent || []);
+    const cmdPath: string[] = [...(parent || [])];
     this._scanDir(dir)
       .forEach(result => {
         // format command name syntax
-        const syntax = cmdPath
-          .concat(result.name)
-          .join(commandDelim);
+        const tree = cmdPath.concat(result.name);
 
         if (result.stats.isDirectory()) {
           // check and skip if file by same name as directory exists
           if (!fs.existsSync(`${result.location}.js`) && !fs.existsSync(`${result.location}.ts`)) {
             // init without class
-            this.program.registerCommandHelp(syntax, null, []);
+            this.program.registerCommandHelp(tree, null, []);
           } else {
             // has directory AND file by that name hmm...
           }
@@ -332,7 +359,7 @@ export class CLI {
           const mod = require(result.location);
           const ctor = this._extractCommandCtor(mod);
           if (ctor) {
-            this.program.registerCommandHelp(syntax, ctor);
+            this.program.registerCommandHelp(tree, ctor);
           }
         }
       });
@@ -346,7 +373,7 @@ export class CLI {
    */
   private _normalizedArgs(args: string[]): string[] {
     const { commandDelim } = this.program.config;
-    return args && args.length ?
+    return commandDelim !== SPACE && args && args.length ?
       // reduce the args to a normalized array, without delimiters
       args.reduce((result: {did?: boolean, list: string[]}, arg) => {
         if (!result.did) {

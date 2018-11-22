@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { EOL } from 'os';
-import { CONSTANTS } from '../constants';
+import { CONSTANTS, SPACE } from '../constants';
 import { OutputStream } from './stream';
 
 /**
@@ -16,16 +16,28 @@ export namespace UI {
     FOUR,
   }
 
+  export type IOutputBody = string | string[];
+  export type IOutputGrid = (string | number)[][];
+
   export class Writer extends OutputStream {
     /** ivar reference to chalk as 'color' */
     public color = chalk;
+
+    /**
+     * output a block of text
+     * @param body paragraph text
+     * @param tab indentation
+     */
+    public paragraph(body: IOutputBody, tab = TAB.ZERO) {
+      return this.output().outputLines(body, tab);
+    }
 
     /**
      * Print a section to the ui with heading.
      * @param heading section heading
      * @param body section text
      */
-    public outputSection(heading: string, body: string | string[]): Writer {
+    public outputSection(heading: string, body: IOutputBody): Writer {
       return this.write(`${EOL}${heading}:${EOL + EOL}${this._indentLines(body, TAB.ONE)}`);
     }
 
@@ -33,18 +45,20 @@ export namespace UI {
      * Print a multiline message with specified indentation
      * @param body message to print
      * @param tabs indentation tabs (1 tab = 2 spaces)
+     * @param trim whether or not to trim each line's content
      */
-    public outputLines(body: string | string[], tabs = TAB.TWO): Writer {
-      return this.write(this._indentLines(body, tabs));
+    public outputLines(body: IOutputBody, tabs = TAB.TWO, trim = true): Writer {
+      return this.write(this._indentLines(body, tabs, trim));
     }
 
     /**
      * Output an aligned grid of the text matrix
      * @param table matrix of rows/cols
      * @param spacing spacing between items
+     * @param indent grid indentation
      */
-    public outputGrid(table: (string | number)[][], spacing = TAB.TWO): Writer {
-      return this.outputLines(this.grid(table, spacing));
+    public outputGrid(table: IOutputGrid, spacing = TAB.TWO, indent = TAB.ONE): Writer {
+      return this.outputLines(this.grid(table, spacing), indent, false);
     }
 
     /**
@@ -52,7 +66,7 @@ export namespace UI {
      * @param table matrix of rows/cols
      * @param spacing spacing between items
      */
-    public grid(table: (string | number)[][], spacing = TAB.TWO): string {
+    public grid(table: IOutputGrid, spacing = TAB.TWO): string {
       const widths = this._colWidths(table);
       const rows = table.reduce((list: string[], row: string[]) => {
 
@@ -74,7 +88,7 @@ export namespace UI {
               const cellText = (lines[i] || '').trim();
               const clean = cleanText(cellText);
               const diff = w - clean.length;
-              const rpad = diff > 0 ? new Array(diff + 1).join(' ') : '';
+              const rpad = diff > 0 ? new Array(diff + 1).join(SPACE) : '';
 
               subgrid[i][col] = cellText + rpad;
             }
@@ -90,7 +104,7 @@ export namespace UI {
      * determine col widths from a rows/colums in a table
      * @param table a table structure with columns
      */
-    private _colWidths(table: (string | number)[][]): number[] {
+    private _colWidths(table: IOutputGrid): number[] {
       const widths: number[] = [];
       table.forEach(row => {
         row.forEach((cell, col) => {
@@ -112,18 +126,15 @@ export namespace UI {
 
     /**
      * format text with same indent for each line
-     * @param text
-     * @param tabs
      */
-    private _indentLines(text: string | string[], tabs = TAB.ONE): string {
-      return this._lines(text).map(line => `${this._indent(tabs)}${line.trim()}`).join(EOL);
+    private _indentLines(text: IOutputBody, tabs = TAB.ONE, trim = true): string {
+      return this._lines(text).map(line => `${this._indent(tabs)}${trim ? line.trim() : line}`).join(EOL);
     }
 
     /**
      * Lineify text
-     * @param text text to convert to lines
      */
-    private _lines(text: string | string[]): string[] {
+    private _lines(text: IOutputBody): string[] {
       const chunks = [].concat(text);
       const lines = [].concat(...chunks.map(item => item.trim().split(EOL)));
       return lines;

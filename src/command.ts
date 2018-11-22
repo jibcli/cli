@@ -1,7 +1,59 @@
-import { ICommandArgument, ICommandOption } from './adapter';
 import { /*Extensible,*/ Log, UI } from './lib';
 import { ICtor, isCtor } from './lib/ctor';
 import { GetToken } from './lib/token';
+
+/**
+ * Command argument interface.
+ */
+export interface ICommandArgument {
+  /** Argument name in syntax processing */
+  name: string;
+  /** Describe the argument for help text */
+  description?: string;
+  /** Flag to indicate optional argument */
+  optional?: boolean; // default false
+  /** Indicate variadic argument (multiple args as one). If true, then must be the last argument */
+  multi?: boolean; // default false
+}
+
+/**
+ * Option flag syntax of the format `-{shorthand}, --{longhand} {[value]}`
+ *
+ * - `-c, --cheese <type>` requires "type" in cheese option
+ * - `-p, --project [path]` "path" is optional for the project option
+ * - `-d, --debug` simple boolean option
+ * - `--test` a longhand only flag
+ *
+ * Short boolean flags may be passed as a single argument, such as `-abc`.
+ * Multi-word arguments like `--with-token` become camelCase, as `options.withToken`.
+ * Also note that multi-word arguments with `--no` prefix will result in `false` as
+ * the option name value. So `--no-output` would parse as `options.output === false`.
+ */
+export type TOptionFlag = string;
+
+/**
+ * Command option interface
+ */
+export interface ICommandOption {
+  /** Option flag syntax. */
+  flag: TOptionFlag;
+  /** Describe the option to be listed with help */
+  description?: string;
+  /** Default option value */
+  default?: any;
+  /** Value processing function or RegExp - Useful for accepting multiple values for same flag */
+  fn?: IOptionHandler;
+  /** Indicate if the option should be hidden from the help and usage outputs */
+  hidden?: boolean;
+}
+
+
+/**
+ * Handler for option values during collector aggregation.
+ * @param current the argv that was received
+ * @param prev the previous value assigned as that option's processed value
+ */
+export type IOptionHandler = ((current: any, prev?: any) => any) | RegExp;
 
 /**
  * Definition for a parsed command implementation
@@ -39,7 +91,7 @@ export interface Command {
    * where the first argument is the current value, the second argument is the
    * aggregated values to that point, and the new object is returned.
    *
-   * ```typescript
+   * ```ts
    * options: [
    *   { flag: '-f, --file <name>', description: 'file name', fn: /\.zip$/ }
    * ]
@@ -60,7 +112,7 @@ export interface Command {
 /**
  * Command Implementation decorator factory
  *
- * ```typescript
+ * ```ts
  * @Command({
  *   description: 'My super command',
  *   args: [
@@ -129,7 +181,7 @@ export const COMMAND_TOKEN = GetToken('command');
  * which all implementations _should_ extend.
  * It also provides a layer of abstraction for `ui` and `logger` members.
  *
- * ```typescript
+ * ```ts
  * @Command({
  *   description: 'a useful command of some kind'
  * })
