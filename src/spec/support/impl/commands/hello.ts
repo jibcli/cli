@@ -16,10 +16,11 @@ function multiCb(val: any, values: string[]): any {
   options: [
     {flag: '-c, --casual', description: 'be casual'},
     {flag: '-m, --multi <val>', description: 'multi option', fn: multiCb},
+    {flag: '--no-color', description: 'negative flag'},
   ],
   args: [
     /** must provide <world...> args */
-    {name: 'world', multi: true, optional: false},
+    {name: 'world', multi: true, optional: false, description: 'variadic arg'},
   ],
 })
 export class Hello extends BaseCommand {

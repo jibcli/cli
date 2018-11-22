@@ -32,8 +32,7 @@
     "!build/spec"
   ],
   "dependencies": {
-    "chalk": "^2.4.1",
-    "commander": "^2.17.1"
+    "chalk": "^2.4.1"
   },
   "devDependencies": {
     "@jib/tslint": "^0.0.1",

@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import * as os from 'os';
 import * as path from 'path';
 import { CLI, ICLIOptions, Log } from '../../';
-import { ChildPromise, CONSTANTS } from '../../lib';
+import { ChildPromise, CONSTANTS, SPACE } from '../../lib';
 
 describe('CLI', () => {
   let testImplDir: string;
@@ -68,7 +68,7 @@ describe('CLI', () => {
      * @param env env configuration
      */
     const testImpl = (syntax: string, opts?: string[], env?: any): Promise<string> => {
-      const args = [].concat(syntax ? syntax.split(' ') : [], opts || []);
+      const args = [].concat(syntax ? syntax.split(SPACE) : [], opts || []);
       return ChildPromise.spawn(path.join('bin', 'jib'), args, {
         cwd: testImplDir,
         env,
@@ -194,7 +194,7 @@ describe('CLI', () => {
 
       it('should fail without required args', done => {
         testImpl('hello')
-          .then(output => Promise.reject(`Should not have run ${output}`), e => {
+          .then(output => Promise.reject(`Should not have succeded: ${output}`), e => {
             expect(e).toContain('missing required argument');
             expect(e).toContain('world');
           })
@@ -246,7 +246,7 @@ describe('CLI', () => {
 
       describe('Using delimiters', () => {
 
-        const delimTests = [' ' /* This is the default */, ':', '.'];
+        const delimTests = [SPACE /* This is the default */, ':', '.'];
         const parts = ['project', 'init', 'web'];
 
         delimTests.forEach(delim => {
