@@ -40,7 +40,7 @@ export function Provide<T = any>(config: IPluginProvider<T> = {}): any {
 
 /**
  * Signature when prototype property decorator is used:
- * ```typescript
+ * ```ts
  * class Foo {
  *   @Bar()
  *   public bar: any;

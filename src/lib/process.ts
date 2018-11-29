@@ -33,7 +33,7 @@ export class ChildPromise {
       }
       sub.on('error', e => reject(e));
       sub.on('exit', code => {
-        return code === 0 ? resolve(out.trim()) : reject(err);
+        return code === 0 ? resolve(out.trim()) : reject(err || out);
       });
     });
   }

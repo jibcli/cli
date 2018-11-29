@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { EOL } from 'os';
 import { Writable } from 'stream';
 import { inspect } from 'util';
+import { SPACE } from '../constants';
 
 type TOutputMessage = string | object | Error;
 
@@ -27,8 +28,16 @@ export class OutputStream {
    * @param msgs messages to write
    */
   public write(...msgs: any[]): this {
-    msgs.forEach((msg, i) => this.stream.write(`${i ? ' ' : ''}${this._format(msg)}`));
-    this.stream.write(EOL);
+    this.append(...msgs).stream.write(EOL);
+    return this;
+  }
+
+  /**
+   * Append text to existing line
+   * @param msgs
+   */
+  public append(...msgs: any[]) {
+    msgs.forEach((msg, i) => this.stream.write(`${i ? SPACE : ''}${this._format(msg)}`));
     return this;
   }
 

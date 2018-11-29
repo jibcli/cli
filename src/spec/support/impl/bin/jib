@@ -16,7 +16,7 @@ const parser = new CLI({
   commandDelim: process.env.JIB_TEST_COMMAND_DELIM, // tests different command delimiters
 });
 
-// add a global option
+// test a global option
 parser.addGlobalOption({ flag: '-i, --info', description: 'Show global information'}, (info, helper) => {
   helper.ui.write('Got info option');
 });

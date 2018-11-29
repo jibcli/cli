@@ -1,2 +1,2 @@
-// same as main module as consumed
+// same as consuming main module
 export * from '../../../';
