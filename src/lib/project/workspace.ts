@@ -162,12 +162,12 @@ export namespace Workspace {
     const pkgJsonConfig = pkgJson[CONSTANTS.PKG_CONFIG_KEY] || {};
 
     // resolve command directory & update config
-    let commandDir = pkgJsonConfig.commandDir || CONSTANTS.COMMAND_DIRECTORY;
+    let commandDir = options.commandDir || pkgJsonConfig.commandDir || CONSTANTS.COMMAND_DIRECTORY;
     const resolvedDir = _resolveCommandDir(root, commandDir);
-    commandDir = resolvedDir;
     if (!resolvedDir) {
       throw new Error(`Unable to resolve command directory '${commandDir}' in '${root}`);
     }
+    commandDir = resolvedDir;
 
     // init program with full options
     _config = <ICLIOptions>{

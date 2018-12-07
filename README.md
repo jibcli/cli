@@ -24,13 +24,23 @@ designed to be highly performant for large CLI applications. Other similiarities
 
 - TypeScript first development experience.
 - Only `require`(s) a file when its command is called.
-- Minimal dependencies & lightweight.
+- Minimal dependencies & **[VERY](https://packagephobia.now.sh/result?p=@jib/cli)** lightweight.
 
 Some additional benefits of `@jib/cli` include:
 
 - Run any combination of single/multi command CLIs in one project.
 - Supports custom command delimiter syntax (such as `<command>:<subcommand>` or `<command> <subcommand>`).
 - Built-in logger and ui stream classes.
+- Simple plugin framework.
+
+## Quickstart
+
+The best way get started with `@jib/cli` is to use the
+[`@jib/jib`](https://github.com/jibcli/jib) project generator.
+
+```text
+npx @jib/jib init --help
+```
 
 ## Structure
 
