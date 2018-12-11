@@ -1,4 +1,5 @@
 // expose some core libs
+export { JIB, VERSION } from './lib';
 export { UI, Log, Workspace } from './lib';
 
 // expose plugin extensibility & tokens
