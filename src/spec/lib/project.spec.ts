@@ -5,7 +5,7 @@ describe('Project', () => {
     expect(project.VERSION).toMatch(/(\d+\.?){3}/);
   });
 
-  it('should expos jib namespace', () => {
+  it('should expose jib namespace', () => {
     expect(project.JIB).toEqual('jib');
   });
 });
