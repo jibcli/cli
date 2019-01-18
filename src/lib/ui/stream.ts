@@ -13,12 +13,23 @@ export interface IOutputStreamOptions {
 }
 
 export class OutputStream {
+  /**
+   * Provide own write stream
+   * @param stream
+   */
+  public static stream(stream: TOutputWritable): typeof OutputStream {
+    this._defaultStream = stream;
+    return this;
+  }
+  protected static _defaultStream: TOutputWritable = process.stdout;
+
   /** ivar reference to chalk as 'color' */
   public color = chalk;
 
   constructor(protected _options: IOutputStreamOptions = {}) {
+    const { _defaultStream } = this.constructor as typeof OutputStream;
     this._options = {
-      stream: process.stdout as TOutputWritable, // default
+      stream: _defaultStream,
       ..._options,
     };
   }

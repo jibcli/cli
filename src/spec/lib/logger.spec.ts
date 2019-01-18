@@ -36,8 +36,15 @@ describe('Logger', () => {
     MockLogger.setDefaultLogger(console as any);
     const log = MockLogger.defaultLogger();
     expect(log).toEqual(console as any);
-    log.info('test');
+    const logger = new MockLogger();
+    logger.info('test');
     expect(info).toHaveBeenCalled();
+  });
+
+  it('should support partial logger', () => {
+    MockLogger.provide({} as any);
+    const logger = new MockLogger();
+    expect(() => logger.error('foo')).not.toThrow();
   });
 
   it('should allow level to be set', () => {

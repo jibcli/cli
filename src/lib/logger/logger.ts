@@ -30,17 +30,18 @@ export namespace Log {
 
   export type TLoggerStream = TOutputWritable;
 
+  export type TLogFn = (...msg: any[]) => any;
   /**
    * Basic interface for any logger implementation
    */
   export interface ILogger {
     name?: string;
-    trace(...msg: any[]): any;
-    debug(...msg: any[]): any;
-    info(...msg: any[]): any;
-    warn(...msg: any[]): any;
-    error(...msg: any[]): any;
-    fatal(...msg: any[]): any;
+    trace: TLogFn;
+    debug: TLogFn;
+    info: TLogFn;
+    warn: TLogFn;
+    error: TLogFn;
+    fatal: TLogFn;
   }
 
   /**
@@ -62,16 +63,26 @@ export namespace Log {
      * Set a default level to be used by all logger instantantiations
      * @param level default level used for Logger instances
      */
-    public static setDefaultLevel(level: LOG_LEVEL): void {
+    public static setDefaultLevel(level: LOG_LEVEL): typeof Logger {
       this._defaultLevel = level;
+      return this;
     }
 
     /**
      * set a default logger instance
      * @param logger the logger implementation to use
      */
-    public static setDefaultLogger(logger: ILogger): void {
+    public static setDefaultLogger(logger: ILogger): typeof Logger {
       this._default = logger;
+      return this;
+    }
+
+    /**
+     * Provide a logging interface to use
+     * @param logger alternate logger to utilize
+     */
+    public static provide(logger: ILogger): typeof Logger {
+      return this.setDefaultLogger(logger);
     }
 
     /**
@@ -154,7 +165,13 @@ export namespace Log {
      * @param level log level to write
      */
     private _log(msgs: any[], level: LOG_LEVEL): Logger {
-      if (this._level && level >= this._level) {
+      const { _default } = this.constructor as typeof Logger;
+      if (_default) {
+        const method = LOG_LEVEL[level].toLowerCase() as keyof ILogger;
+        if (_default[method]) {
+          (_default[method] as TLogFn)(...msgs);
+        }
+      } else if (this._level && level >= this._level) {
         const { name } = this;
         // colorize level label
         const label = chalk.bold(chalk[LogLevelChalkMap.get(level)](LOG_LEVEL[level]));

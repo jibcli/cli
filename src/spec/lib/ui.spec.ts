@@ -16,9 +16,13 @@ describe('UI features', () => {
       }
     }
 
+    class MockWriter extends UI.Writer { }
+
     beforeEach(() => {
       mockStream = new NoopStream();
-      ui = new UI.Writer({ stream: mockStream });
+      // ui = new UI.Writer({ stream: mockStream });
+      MockWriter.stream(mockStream);
+      ui = new MockWriter();
     });
 
     it('should default to stdout stream', () => {
