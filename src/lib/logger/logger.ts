@@ -63,24 +63,26 @@ export namespace Log {
      * Set a default level to be used by all logger instantantiations
      * @param level default level used for Logger instances
      */
-    public static setDefaultLevel(level: LOG_LEVEL): void {
+    public static setDefaultLevel(level: LOG_LEVEL): typeof Logger {
       this._defaultLevel = level;
+      return this;
     }
 
     /**
      * set a default logger instance
      * @param logger the logger implementation to use
      */
-    public static setDefaultLogger(logger: ILogger): void {
+    public static setDefaultLogger(logger: ILogger): typeof Logger {
       this._default = logger;
+      return this;
     }
 
     /**
      * Provide a logging interface to use
      * @param logger alternate logger to utilize
      */
-    public static provide(logger: ILogger): void {
-      this.setDefaultLogger(logger);
+    public static provide(logger: ILogger): typeof Logger {
+      return this.setDefaultLogger(logger);
     }
 
     /**
