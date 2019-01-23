@@ -364,8 +364,10 @@ export class Collector extends EventEmitter {
         ...this._optVal(current, rest),
       };
     } else {
-      const def: ICommandArgument = this._args[args.length ? args.length - 1 : 0];
-      if (def && def.multi) {
+      const last: number = args.length;
+      const max: number = this._args.length - 1;
+      const defn: ICommandArgument = this._args[Math.min(last, max)];
+      if (defn && defn.multi) {
         const slot = this._args.length - 1;
         args[slot] = args[slot] || [];
         (args[slot] as string[]).push(current);
