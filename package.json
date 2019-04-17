@@ -1,6 +1,6 @@
 {
   "name": "@jib/cli",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Full-featured extensible CLI development framework",
   "main": "build/index.js",
   "types": "build/index.d.ts",
