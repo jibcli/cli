@@ -136,60 +136,6 @@ export class CLI {
       return this.program.exec(rargs, this._commandPath)
         .then(resolve)
         .catch(fail);
-
-      // if (isVersion) { // explicitly -v|--version
-      //   this.program.exec(rargs);
-      // } else if (isHelp && !rootCommand) { // explicitly -h|--help
-      //   // this._initHelp(this._commandRoot).help();
-      // } else {
-      //   // locate command according to arguments/options
-      //   commandModule = this._locateCommand(this._commandRoot, args) ||
-      //     rootCommand && this._locateCommand(this._commandRoot, [rootCommand].concat(args));
-
-      //   const fail = (e: Error) => {
-      //     this.logger.error(e);
-      //     reject(e);
-      //     process.exit(1);
-      //   };
-
-      //   if (commandModule) {
-      //     // init with program
-      //     const { name, ctor, subcommands } = commandModule;
-
-      //     // register the command handler
-      //     if (name === rootCommand) { // single command
-      //       this.program.registerRoot(ctor);
-      //     } else {
-      //       this.program.registerCommand(name, ctor, subcommands);
-      //     }
-
-      //     // // parse the program to invoke command run loop
-      //     // return this.program.exec(rargs, this._commandPath)
-      //     //   .then(resolve)
-      //     //   .catch(fail);
-      //   } else {
-      //     this.logger.debug(`No command could be resolved`);
-      //     // arguments could not resolve a command, so proceed with help
-      //     let err: Error;
-      //     try {
-      //       this._initHelp(this._commandRoot);
-      //     } catch (e) { err = e; }
-      //     // since args were passed, yet the command could not resolve, it's an error
-      //     if (args.length) {
-      //       // TODO: should stderr
-      //       err = err || new Error(`Command '${args[0]}' was not found`);
-      //       this.help();
-      //       fail(err);
-      //     } else {
-      //       this.help();
-      //     }
-      //   }
-      //   // parse the program to invoke command run loop
-      //   return this.program.exec(rargs, this._commandPath)
-      //     .then(resolve)
-      //     .catch(fail);
-      // }
-      // resolve();
     });
   }
 
