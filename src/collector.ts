@@ -49,6 +49,12 @@ export class Flag {
       this.defaultValue = neg ? true : false;
     }
   }
+
+  public usage(): string {
+    const { vName, vRequired } = this.meta;
+    return this.alias.join(', ') +
+      (vName ? ' ' + (!vRequired ? '[' : '<') + vName + (!vRequired ? ']' : '>') : '');
+  }
 }
 
 interface ICollectorMeta {
@@ -197,7 +203,7 @@ export class Collector extends EventEmitter {
         a.description || '']),
       options: this._options
         .filter(o => !o.hidden)
-        .map(o => [o._flag.alias.join(', '), o.description || '', o.default ? `(default ${o.default})` : '']),
+        .map(o => [o._flag.usage(), o.description || '', o.default ? `(default ${o.default})` : '']),
       subcommands: [...this._commands.values()].map(c => c.usage()),
     };
 
