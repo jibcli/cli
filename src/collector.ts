@@ -453,7 +453,7 @@ export class Collector extends EventEmitter {
   private _meta(key: keyof ICollectorMeta, val: string | boolean): this;
   private _meta(key: keyof ICollectorMeta, val?: string | boolean): string | boolean | this {
     if (typeof val !== 'undefined') {
-      this._metadata[key] = val;
+      this._metadata[key as string] = val;
       return this;
     }
     return this._metadata[key];
