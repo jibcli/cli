@@ -71,7 +71,7 @@ describe('CLI', () => {
       const args = [].concat(syntax ? syntax.split(SPACE) : [], opts || []);
       return ChildPromise.spawn(path.join('bin', 'jib'), args, {
         cwd: testImplDir,
-        env,
+        env: {...process.env, ...(env || {})},
       });
     };
 

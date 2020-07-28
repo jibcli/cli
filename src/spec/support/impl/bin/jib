@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
 
 // ################################
 // For unit tests in parser.spec.ts

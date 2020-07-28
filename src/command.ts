@@ -196,7 +196,7 @@ export const COMMAND_TOKEN = GetToken('command');
 //   restricted: ['ui'],
 //   args: self => self,
 // })
-export abstract class BaseCommand implements ICommand {
+export abstract class BaseCommand<T = any> implements ICommand {
 
   /** reference to raw args used in the invocation */
   public argv: string[] = [];
@@ -210,6 +210,6 @@ export abstract class BaseCommand implements ICommand {
    * @param options Parsed options for the command invocation
    * @param args Any arguments passed to the command
    */
-  public abstract async run(options: object, ...args: any[]): Promise<any>;
+  public abstract async run(options: T, ...args: any[]): Promise<any>;
 
 }
